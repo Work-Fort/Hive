@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package sqlite_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/Work-Fort/Hive/internal/domain"
+)
+
+func TestCreateAndGetAgent(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+
+	agent := &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001"}
+	if err := store.CreateAgent(ctx, agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	got, err := store.GetAgent(ctx, "a_001")
+	if err != nil {
+		t.Fatalf("get agent: %v", err)
+	}
+	if got.Name != "alice" || got.TeamID != "t_001" {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestSetAndGetAgentRoles(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001"})
+	store.CreateRole(ctx, &domain.Role{ID: "r_001", Name: "developer"})
+	store.CreateRole(ctx, &domain.Role{ID: "r_002", Name: "reviewer"})
+
+	roles := []domain.AgentRole{
+		{AgentID: "a_001", RoleID: "r_001", Priority: 1},
+		{AgentID: "a_001", RoleID: "r_002", Priority: 2},
+	}
+	if err := store.SetAgentRoles(ctx, "a_001", roles); err != nil {
+		t.Fatalf("set agent roles: %v", err)
+	}
+
+	got, err := store.GetAgentRoles(ctx, "a_001")
+	if err != nil {
+		t.Fatalf("get agent roles: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d roles, want 2", len(got))
+	}
+	if got[0].Priority != 1 || got[1].Priority != 2 {
+		t.Errorf("roles not ordered by priority: %+v", got)
+	}
+}
+
+func TestListAgentsByTeam(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+	store.CreateTeam(ctx, &domain.Team{ID: "t_002", Name: "beta"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_002", Name: "bob", TeamID: "t_002"})
+
+	agents, err := store.ListAgents(ctx, "t_001")
+	if err != nil {
+		t.Fatalf("list agents: %v", err)
+	}
+	if len(agents) != 1 || agents[0].Name != "alice" {
+		t.Errorf("expected only alice, got %+v", agents)
+	}
+}
