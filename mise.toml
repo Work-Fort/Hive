@@ -1,0 +1,18 @@
+[tools]
+go = "1.26.0"
+
+[tasks.build]
+description = "Build the hive binary"
+run = "go build -o build/hive ."
+
+[tasks.test]
+description = "Run unit tests"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "rm -rf build/"
