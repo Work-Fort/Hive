@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	daemonCmd "github.com/Work-Fort/Hive/cmd/daemon"
 	"github.com/Work-Fort/Hive/internal/config"
 )
 
@@ -91,4 +92,6 @@ func init() {
 	}
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
+
+	rootCmd.AddCommand(daemonCmd.NewCmd())
 }
