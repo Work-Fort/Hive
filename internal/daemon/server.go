@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/Work-Fort/Hive/internal/domain"
 )
 
 // ServerConfig holds configuration for the HTTP server.
@@ -13,6 +15,7 @@ type ServerConfig struct {
 	Bind   string
 	Port   int
 	Health *HealthService
+	Store  domain.Store
 }
 
 // NewServer creates and configures the HTTP server.

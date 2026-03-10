@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/Work-Fort/Hive/internal/config"
 	hiveDaemon "github.com/Work-Fort/Hive/internal/daemon"
+	"github.com/Work-Fort/Hive/internal/infra"
 )
 
 // NewCmd returns the daemon cobra command.
@@ -56,10 +59,34 @@ func NewCmd() *cobra.Command {
 func run(bind string, port int, db, apiKey string) error {
 	health := hiveDaemon.NewHealthService()
 
+	// Database
+	dsn := db
+	if dsn == "" {
+		dsn = filepath.Join(config.GlobalPaths.StateDir, "hive.db")
+	}
+
+	store, err := infra.Open(dsn)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer store.Close()
+
+	// Seed permissions
+	permNames := []string{
+		"role:read", "role:write",
+		"memory:read", "memory:write",
+		"task:read", "task:write",
+		"agent:manage", "team:manage",
+	}
+	if err := store.SeedPermissions(context.Background(), permNames); err != nil {
+		return fmt.Errorf("seed permissions: %w", err)
+	}
+
 	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
 		Bind:   bind,
 		Port:   port,
 		Health: health,
+		Store:  store,
 	})
 
 	sigCh := make(chan os.Signal, 1)
