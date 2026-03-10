@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package config
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+)
+
+const (
+	EnvPrefix           = "HIVE"
+	ConfigFileName      = "config"
+	ConfigType          = "yaml"
+	DefaultBind         = "127.0.0.1"
+	DefaultPort         = 17000
+	DefaultMaxRoleDepth = 10
+)
+
+type Paths struct {
+	ConfigDir string
+	StateDir  string
+}
+
+var GlobalPaths *Paths
+
+func init() {
+	GlobalPaths = GetPaths()
+}
+
+func GetPaths() *Paths {
+	configHome := os.Getenv("XDG_CONFIG_HOME")
+	if configHome == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: failed to get home directory: %v\n", err)
+			os.Exit(1)
+		}
+		configHome = filepath.Join(home, ".config")
+	}
+
+	stateHome := os.Getenv("XDG_STATE_HOME")
+	if stateHome == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: failed to get home directory: %v\n", err)
+			os.Exit(1)
+		}
+		stateHome = filepath.Join(home, ".local", "state")
+	}
+
+	return &Paths{
+		ConfigDir: filepath.Join(configHome, "hive"),
+		StateDir:  filepath.Join(stateHome, "hive"),
+	}
+}
+
+func InitDirs() error {
+	dirs := []string{
+		GlobalPaths.ConfigDir,
+		GlobalPaths.StateDir,
+	}
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("create directory %s: %w", dir, err)
+		}
+	}
+	return nil
+}
+
+func InitViper() {
+	viper.SetDefault("bind", DefaultBind)
+	viper.SetDefault("port", DefaultPort)
+	viper.SetDefault("log-level", "debug")
+	viper.SetDefault("db", "")
+	viper.SetDefault("api-key", "")
+	viper.SetDefault("max-role-depth", DefaultMaxRoleDepth)
+
+	viper.SetConfigName(ConfigFileName)
+	viper.SetConfigType(ConfigType)
+	viper.AddConfigPath(GlobalPaths.ConfigDir)
+
+	viper.SetEnvPrefix(EnvPrefix)
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+}
+
+func LoadConfig() error {
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			return nil
+		}
+		return fmt.Errorf("read config: %w", err)
+	}
+	return nil
+}
+
+func BindFlags(flags *pflag.FlagSet) error {
+	flagsToBind := []string{"log-level"}
+	for _, name := range flagsToBind {
+		if err := viper.BindPFlag(name, flags.Lookup(name)); err != nil {
+			return fmt.Errorf("bind flag %s: %w", name, err)
+		}
+	}
+	return nil
+}
