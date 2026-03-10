@@ -81,8 +81,12 @@ func run(agentID, host string, port int) error {
 			continue
 		}
 
-		os.Stdout.Write(body)
-		os.Stdout.Write([]byte("\n"))
+		if _, err := os.Stdout.Write(body); err != nil {
+			return fmt.Errorf("stdout write: %w", err)
+		}
+		if _, err := os.Stdout.Write([]byte("\n")); err != nil {
+			return fmt.Errorf("stdout write: %w", err)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {

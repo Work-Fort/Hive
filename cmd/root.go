@@ -51,6 +51,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		logPath := filepath.Join(config.GlobalPaths.StateDir, "debug.log")
+		// The log file is intentionally never closed. The daemon runs until
+		// a signal is received, at which point the OS reclaims the fd.
 		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
 			return fmt.Errorf("open log file: %w", err)

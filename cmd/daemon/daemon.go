@@ -3,6 +3,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	hiveDaemon "github.com/Work-Fort/Hive/internal/daemon"
 )
@@ -27,6 +29,18 @@ func NewCmd() *cobra.Command {
 		Use:   "daemon",
 		Short: "Start the Hive daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !cmd.Flags().Changed("bind") {
+				bind = viper.GetString("bind")
+			}
+			if !cmd.Flags().Changed("port") {
+				port = viper.GetInt("port")
+			}
+			if !cmd.Flags().Changed("db") {
+				db = viper.GetString("db")
+			}
+			if !cmd.Flags().Changed("api-key") {
+				apiKey = viper.GetString("api-key")
+			}
 			return run(bind, port, db, apiKey)
 		},
 	}
@@ -53,7 +67,7 @@ func run(bind string, port int, db, apiKey string) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		if err := hiveDaemon.ListenAndServe(srv); err != nil && err != http.ErrServerClosed {
+		if err := hiveDaemon.ListenAndServe(srv); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
 	}()
