@@ -4,57 +4,87 @@
 
 **Goal:** Bootstrap the Hive Go project with CLI framework, config system, HTTP server, empty MCP endpoint, health check, and build tooling — producing a runnable binary.
 
-**Architecture:** Single Go binary using Cobra for CLI, Viper for config, charmbracelet/log for logging. HTTP server with stdlib `net/http` serving `/v1/health` and `/mcp` (empty placeholder). Follows Nexus conventions: `internal/` for private packages, hexagonal layout, XDG paths, SPDX headers.
+**Architecture:** Single Go binary using Cobra for CLI, Viper for config, charmbracelet/log for logging. HTTP server with stdlib `net/http` serving `/v1/health` and `/mcp` (empty placeholder). Follows Nexus conventions: `internal/` for private packages, hexagonal layout, XDG paths, SPDX headers. Daemon and bridge live in separate subpackages under `cmd/`.
 
 **Tech Stack:** Go 1.26+, Cobra, Viper, charmbracelet/log, mcp-go, mise
 
 ---
 
-## Chunk 1: Go Module, Main, and CLI Root
+## Chunk 1: Build Tooling, Go Module, and CLI Root
 
-### Task 1: Initialize Go module and main.go
+### Task 1: mise.toml and .gitignore
+
+**Files:**
+- Modify: `mise.toml`
+- Create: `.gitignore`
+
+- [ ] **Step 1: Configure mise.toml with Go toolchain and build tasks**
+
+Replace `mise.toml` contents with:
+
+```toml
+[tools]
+go = "1.26.0"
+
+[tasks.build]
+description = "Build the hive binary"
+run = "go build -o build/hive ."
+
+[tasks.test]
+description = "Run unit tests"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "rm -rf build/"
+```
+
+- [ ] **Step 2: Create .gitignore**
+
+Create `.gitignore`:
+
+```
+build/
+```
+
+- [ ] **Step 3: Ensure Go 1.26 is available**
+
+```bash
+mise install
+go version
+```
+
+Expected: `go version go1.26.0 ...` (no output from mise install if already cached).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add mise.toml .gitignore
+git commit -m "chore: configure mise with Go 1.26 and add .gitignore"
+```
+
+### Task 2: Initialize Go module, config, root command, and main.go
+
+All four files are created together so the first commit compiles.
 
 **Files:**
 - Create: `go.mod`
 - Create: `main.go`
+- Create: `internal/config/config.go`
+- Create: `cmd/root.go`
 
 - [ ] **Step 1: Initialize Go module**
 
 ```bash
-cd /home/kazw/Work/WorkFort/hive/lead
 go mod init github.com/Work-Fort/Hive
+go mod edit -go=1.26
 ```
 
-- [ ] **Step 2: Create main.go**
-
-Create `main.go`:
-
-```go
-// SPDX-License-Identifier: GPL-3.0-or-later
-package main
-
-import (
-	"github.com/Work-Fort/Hive/cmd"
-)
-
-func main() {
-	cmd.Execute()
-}
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add go.mod main.go
-git commit -m "feat: initialize Go module and main entry point"
-```
-
-### Task 2: Config package
-
-**Files:**
-- Create: `internal/config/config.go`
-
-- [ ] **Step 1: Create config package**
+- [ ] **Step 2: Create internal/config/config.go**
 
 Create `internal/config/config.go`:
 
@@ -73,11 +103,11 @@ import (
 )
 
 const (
-	EnvPrefix      = "HIVE"
-	ConfigFileName = "config"
-	ConfigType     = "yaml"
-	DefaultBind    = "127.0.0.1"
-	DefaultPort    = 17000
+	EnvPrefix           = "HIVE"
+	ConfigFileName      = "config"
+	ConfigType          = "yaml"
+	DefaultBind         = "127.0.0.1"
+	DefaultPort         = 17000
 	DefaultMaxRoleDepth = 10
 )
 
@@ -176,19 +206,7 @@ func BindFlags(flags *pflag.FlagSet) error {
 }
 ```
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add internal/config/config.go
-git commit -m "feat: add config package with XDG paths and Viper setup"
-```
-
-### Task 3: Cobra root command
-
-**Files:**
-- Create: `cmd/root.go`
-
-- [ ] **Step 1: Create root command**
+- [ ] **Step 3: Create cmd/root.go**
 
 Create `cmd/root.go`:
 
@@ -290,26 +308,42 @@ func init() {
 }
 ```
 
-- [ ] **Step 2: Install dependencies and verify compilation**
+- [ ] **Step 4: Create main.go**
+
+Create `main.go`:
+
+```go
+// SPDX-License-Identifier: GPL-3.0-or-later
+package main
+
+import (
+	"github.com/Work-Fort/Hive/cmd"
+)
+
+func main() {
+	cmd.Execute()
+}
+```
+
+- [ ] **Step 5: Resolve dependencies and verify compilation**
 
 ```bash
 go mod tidy
 go build ./...
 ```
 
-Expected: compiles successfully (binary won't do anything useful yet since
-no subcommands are registered).
+Expected: no output (exit code 0). Binary compiles successfully.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add cmd/root.go go.mod go.sum
-git commit -m "feat: add Cobra root command with logging and config"
+git add go.mod go.sum main.go cmd/root.go internal/config/config.go
+git commit -m "feat: add Go module, config package, and Cobra root command"
 ```
 
 ## Chunk 2: Daemon Command and HTTP Server
 
-### Task 4: Health handler
+### Task 3: Health handler
 
 **Files:**
 - Create: `internal/daemon/health.go`
@@ -421,7 +455,7 @@ git add internal/daemon/health.go
 git commit -m "feat: add health service and handler"
 ```
 
-### Task 5: HTTP server setup
+### Task 4: HTTP server setup
 
 **Files:**
 - Create: `internal/daemon/server.go`
@@ -455,7 +489,9 @@ func NewServer(cfg ServerConfig) *http.Server {
 	// Health endpoint
 	mux.HandleFunc("GET /v1/health", HandleHealth(cfg.Health))
 
-	// MCP placeholder — will be replaced when MCP server is implemented
+	// MCP placeholder — will be wired to mcp-go StreamableHTTPServer in plan 005.
+	// Full MCP spec requires GET /mcp (SSE) and DELETE /mcp (session termination)
+	// in addition to POST /mcp, which will be handled by the library.
 	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "MCP server not yet implemented", http.StatusNotImplemented)
 	})
@@ -489,18 +525,21 @@ git add internal/daemon/server.go
 git commit -m "feat: add HTTP server with health and MCP placeholder"
 ```
 
-### Task 6: Daemon command
+### Task 5: Daemon subcommand
 
 **Files:**
-- Create: `cmd/daemon.go`
+- Create: `cmd/daemon/daemon.go`
+
+Note: The daemon command lives in its own subpackage `cmd/daemon/` per the spec's
+project layout. The root command imports and registers it.
 
 - [ ] **Step 1: Create daemon subcommand**
 
-Create `cmd/daemon.go`:
+Create `cmd/daemon/daemon.go`:
 
 ```go
 // SPDX-License-Identifier: GPL-3.0-or-later
-package cmd
+package daemon
 
 import (
 	"context"
@@ -513,41 +552,39 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/Hive/internal/daemon"
+	hiveDaemon "github.com/Work-Fort/Hive/internal/daemon"
 )
 
-func init() {
-	rootCmd.AddCommand(newDaemonCmd())
-}
+// NewCmd returns the daemon cobra command.
+func NewCmd() *cobra.Command {
+	var bind string
+	var port int
+	var db string
+	var apiKey string
 
-func newDaemonCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "daemon",
 		Short: "Start the Hive daemon",
-		RunE:  runDaemon,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(bind, port, db, apiKey)
+		},
 	}
 
-	cmd.Flags().String("bind", "127.0.0.1", "Bind address")
-	cmd.Flags().Int("port", 17000, "Listen port")
-	cmd.Flags().String("db", "", "Database DSN (postgres://... or SQLite file path)")
-	cmd.Flags().String("api-key", "", "API key for REST authentication")
-
-	viper.BindPFlag("bind", cmd.Flags().Lookup("bind"))
-	viper.BindPFlag("port", cmd.Flags().Lookup("port"))
-	viper.BindPFlag("db", cmd.Flags().Lookup("db"))
-	viper.BindPFlag("api-key", cmd.Flags().Lookup("api-key"))
+	cmd.Flags().StringVar(&bind, "bind", "127.0.0.1", "Bind address")
+	cmd.Flags().IntVar(&port, "port", 17000, "Listen port")
+	cmd.Flags().StringVar(&db, "db", "", "Database DSN (postgres://... or SQLite file path)")
+	cmd.Flags().StringVar(&apiKey, "api-key", "", "API key for REST authentication")
 
 	return cmd
 }
 
-func runDaemon(cmd *cobra.Command, args []string) error {
-	health := daemon.NewHealthService()
+func run(bind string, port int, db, apiKey string) error {
+	health := hiveDaemon.NewHealthService()
 
-	srv := daemon.NewServer(daemon.ServerConfig{
-		Bind:   viper.GetString("bind"),
-		Port:   viper.GetInt("port"),
+	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
+		Bind:   bind,
+		Port:   port,
 		Health: health,
 	})
 
@@ -557,7 +594,7 @@ func runDaemon(cmd *cobra.Command, args []string) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		if err := daemon.ListenAndServe(srv); err != nil && err != http.ErrServerClosed {
+		if err := hiveDaemon.ListenAndServe(srv); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
@@ -580,39 +617,57 @@ func runDaemon(cmd *cobra.Command, args []string) error {
 }
 ```
 
-- [ ] **Step 2: Verify build and run**
+- [ ] **Step 2: Register daemon command in root**
+
+Add to `cmd/root.go` in the `init()` function, after the version setup:
+
+```go
+import daemonCmd "github.com/Work-Fort/Hive/cmd/daemon"
+```
+
+And in `init()`:
+
+```go
+rootCmd.AddCommand(daemonCmd.NewCmd())
+```
+
+- [ ] **Step 3: Verify build and run**
 
 ```bash
 go mod tidy
 go build -o build/hive .
 ./build/hive daemon --port 17001 &
+sleep 1
 curl -s http://127.0.0.1:17001/v1/health | jq .
 kill %1
 ```
 
 Expected: `{"status":"healthy"}`
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add cmd/daemon.go
+git add cmd/daemon/daemon.go cmd/root.go
 git commit -m "feat: add daemon subcommand with signal handling"
 ```
 
-## Chunk 3: MCP Bridge and Build Tooling
+## Chunk 3: MCP Bridge
 
-### Task 7: MCP bridge command
+### Task 6: MCP bridge subcommand
 
 **Files:**
-- Create: `cmd/mcpbridge.go`
+- Create: `cmd/mcpbridge/mcp_bridge.go`
+
+Note: Like the daemon, the bridge lives in its own subpackage. Flags use local
+variables (not global viper bindings) to avoid key collisions with daemon flags.
 
 - [ ] **Step 1: Create MCP bridge subcommand**
 
-Create `cmd/mcpbridge.go`:
+Create `cmd/mcpbridge/mcp_bridge.go`:
 
 ```go
 // SPDX-License-Identifier: GPL-3.0-or-later
-package cmd
+package mcpbridge
 
 import (
 	"bufio"
@@ -625,38 +680,32 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func init() {
-	rootCmd.AddCommand(newMCPBridgeCmd())
-}
+// NewCmd returns the mcp-bridge cobra command.
+func NewCmd() *cobra.Command {
+	var agentID string
+	var host string
+	var port int
 
-func newMCPBridgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mcp-bridge",
 		Short: "Stdio-to-HTTP MCP bridge",
-		RunE:  runMCPBridge,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(agentID, host, port)
+		},
 	}
 
-	cmd.Flags().String("agent-id", "", "Agent ID this bridge serves (required)")
-	cmd.Flags().String("host", "127.0.0.1", "Daemon host")
-	cmd.Flags().Int("port", 17000, "Daemon port")
+	cmd.Flags().StringVar(&agentID, "agent-id", "", "Agent ID this bridge serves (required)")
+	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Daemon host")
+	cmd.Flags().IntVar(&port, "port", 17000, "Daemon port")
 
 	cmd.MarkFlagRequired("agent-id")
-
-	viper.BindPFlag("agent-id", cmd.Flags().Lookup("agent-id"))
-	viper.BindPFlag("host", cmd.Flags().Lookup("host"))
-	viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 
 	return cmd
 }
 
-func runMCPBridge(cmd *cobra.Command, args []string) error {
-	agentID := viper.GetString("agent-id")
-	host := viper.GetString("host")
-	port := viper.GetInt("port")
-
+func run(agentID, host string, port int) error {
 	mcpURL := fmt.Sprintf("http://%s:%d/mcp", host, port)
 
 	client := &http.Client{Timeout: 60 * time.Second}
@@ -713,7 +762,21 @@ func runMCPBridge(cmd *cobra.Command, args []string) error {
 }
 ```
 
-- [ ] **Step 2: Verify build**
+- [ ] **Step 2: Register bridge command in root**
+
+Add to `cmd/root.go`:
+
+```go
+import mcpBridgeCmd "github.com/Work-Fort/Hive/cmd/mcpbridge"
+```
+
+And in `init()`:
+
+```go
+rootCmd.AddCommand(mcpBridgeCmd.NewCmd())
+```
+
+- [ ] **Step 3: Verify build**
 
 ```bash
 go mod tidy
@@ -723,62 +786,16 @@ go build -o build/hive .
 
 Expected: shows usage with `--agent-id`, `--host`, `--port` flags.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add cmd/mcpbridge.go
+git add cmd/mcpbridge/mcp_bridge.go cmd/root.go
 git commit -m "feat: add MCP bridge subcommand (stdio-to-HTTP)"
 ```
 
-### Task 8: mise.toml build tasks
+### Task 7: Smoke test — full build, daemon start, health check
 
-**Files:**
-- Modify: `mise.toml`
-
-- [ ] **Step 1: Configure mise.toml**
-
-Replace `mise.toml` contents with:
-
-```toml
-[tools]
-go = "1.26.0"
-
-[tasks.build]
-description = "Build the hive binary"
-run = "go build -o build/hive ."
-
-[tasks.test]
-description = "Run unit tests"
-run = "go test ./..."
-
-[tasks.lint]
-description = "Run go vet"
-run = "go vet ./..."
-
-[tasks.clean]
-description = "Remove build artifacts"
-run = "rm -rf build/"
-```
-
-- [ ] **Step 2: Verify mise tasks**
-
-```bash
-mise run build
-./build/hive version
-```
-
-Expected: prints `hive version dev`
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add mise.toml
-git commit -m "feat: add mise build tasks"
-```
-
-### Task 9: Smoke test — full build, daemon start, health check
-
-This is a manual verification step to confirm the skeleton works end-to-end.
+Manual verification that the skeleton works end-to-end.
 
 - [ ] **Step 1: Clean build and start daemon**
 
@@ -813,7 +830,7 @@ Expected: `MCP server not yet implemented` with 501 status.
 - [ ] **Step 4: Verify version**
 
 ```bash
-./build/hive version
+./build/hive --version
 ```
 
 Expected: `hive version dev`
