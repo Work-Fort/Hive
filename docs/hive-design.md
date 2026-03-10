@@ -33,10 +33,16 @@ Config hierarchy: CLI flags > env vars (`HIVE_*`) > config file
 
 ## Data Model
 
+### ID Strategy
+
+All entity IDs are randomly generated text IDs (e.g., `hv_01abc...`). Format
+follows the pattern used in Nexus: short prefix + random component. IDs are
+generated at the application layer, not auto-incremented by the database.
+
 ### Teams
 
 ```sql
-teams (id, name, created_at, updated_at)
+teams (id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, created_at, updated_at)
 ```
 
 Organizational unit. Agents belong to exactly one team.
@@ -62,10 +68,18 @@ A provisioned identity. Belongs to one team.
 ### Agent-Role Assignments
 
 ```sql
-agent_roles (agent_id REFERENCES agents, role_id REFERENCES roles, priority INTEGER)
+agent_roles (
+  agent_id REFERENCES agents,
+  role_id REFERENCES roles,
+  priority INTEGER NOT NULL,
+  PRIMARY KEY (agent_id, role_id),
+  UNIQUE (agent_id, priority)
+)
 ```
 
 Many-to-many with explicit ordering. Lower priority number = higher precedence.
+Each agent-role pair is unique, and no two roles can share the same priority
+for a given agent.
 
 ### Documents
 
@@ -81,6 +95,8 @@ documents (
 - `kind`: `role` (attached to a role via `role_id`) or `memory` (attached to an
   agent via `agent_id`)
 - `content` is markdown text
+- CHECK constraint: exactly one of `role_id` or `agent_id` must be set
+  (`(role_id IS NULL) != (agent_id IS NULL)`)
 
 ### Tasks
 
@@ -119,7 +135,8 @@ Seeded permissions:
 agent_permissions (
   agent_id REFERENCES agents,
   permission_id REFERENCES permissions,
-  scope_team_id NULLABLE REFERENCES teams
+  scope_team_id NULLABLE REFERENCES teams,
+  PRIMARY KEY (agent_id, permission_id, scope_team_id)
 )
 ```
 
@@ -190,16 +207,34 @@ Enforced in two places:
 ### Rules
 
 - **Priority ordering** — lower number = higher precedence, resolved first
-- **Inheritance walks root-ward** — leaf role docs first, then parent, then
-  grandparent (most specific to most general)
+- **Chain order is leaf-to-root** — the `chain` array starts at the leaf role
+  (index 0) and walks toward the root ancestor (last element). Most specific
+  documents appear first.
 - **Cycle detection** — enforced on role creation/update, not at query time
 - **No deduplication** — if two role chains share an ancestor, its documents
   appear in both chains
 
 ## REST API
 
-All endpoints under `/v1`. JSON request/response bodies. Authenticated via API
-key (`Authorization: Bearer <key>`).
+All endpoints under `/v1`. JSON request/response bodies. Authenticated via a
+single shared API key (`Authorization: Bearer <key>`). Key configured in
+`HIVE_API_KEY` env var or config file.
+
+### Pagination
+
+List endpoints return all results in v1. No pagination. This is acceptable for
+the expected scale (tens of teams, hundreds of agents/roles, thousands of
+documents/tasks). Pagination will be added if needed.
+
+### Deletion Behavior
+
+All deletes reject when dependencies exist (no cascading):
+
+- **Delete team** → rejected if team has agents or tasks
+- **Delete role** → rejected if role has child roles or agent assignments
+- **Delete agent** → rejected if agent has tasks assigned; cascades
+  agent_roles and agent_permissions (these are pure metadata)
+- **Delete document** → always allowed (orphan cleanup)
 
 ### Teams
 
@@ -274,23 +309,33 @@ header to the daemon.
 | `get_task` | Get a specific task | `task:read` |
 | `create_task` | Create a task | `task:write` |
 | `update_task` | Update task status/details | `task:write` |
+| `delete_task` | Delete a task | `task:write` |
 
-Agents with `team:manage` or `role:write` scoped to other teams get additional
-tools for managing those teams' roles and agents.
+Cross-team management tools (for agents with `team:manage` or `role:write`
+scoped to other teams) are deferred to a future design iteration. v1 focuses
+on self-service provisioning and task management.
 
 ## Authentication
 
 ### REST API
 
-API key in `Authorization: Bearer <key>` header. Key configured in Hive's
-config file or `HIVE_API_KEY` env var. The REST API is an admin surface consumed
-by the WorkFort frontend.
+Single shared API key as described in the REST API section above. The REST API
+is an admin surface consumed by the WorkFort frontend.
 
 ### MCP
 
-Agent ID passed by the mcp-bridge as a header (`X-Agent-Id`). The daemon looks
-up the agent, resolves permissions, filters tools. No token exchange — the
-bridge is a trusted local process started by systemd.
+The mcp-bridge speaks stdio (JSON-RPC) to Claude Code and forwards requests to
+the daemon over HTTP (`POST /mcp`). Agent ID is passed as a header
+(`X-Agent-Id`) on every request. The daemon looks up the agent, resolves
+permissions, filters tools. No token exchange — the bridge is a trusted local
+process started by systemd.
+
+### MCP Session Lifecycle
+
+One mcp-bridge process = one session. The session starts when the bridge
+connects and ends when the bridge process exits. No timeout, no persistent
+state beyond the agent ID. The MCP library (`mcp-go`) manages session IDs
+via the `Mcp-Session-Id` HTTP header automatically.
 
 ## Health Service
 
