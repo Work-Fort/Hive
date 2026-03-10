@@ -16,6 +16,7 @@ import (
 	hiveDaemon "github.com/Work-Fort/Hive/internal/daemon"
 )
 
+// NewCmd returns the daemon cobra command.
 func NewCmd() *cobra.Command {
 	var bind string
 	var port int

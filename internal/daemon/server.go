@@ -8,12 +8,14 @@ import (
 	"time"
 )
 
+// ServerConfig holds configuration for the HTTP server.
 type ServerConfig struct {
 	Bind   string
 	Port   int
 	Health *HealthService
 }
 
+// NewServer creates and configures the HTTP server.
 func NewServer(cfg ServerConfig) *http.Server {
 	mux := http.NewServeMux()
 
@@ -35,6 +37,7 @@ func NewServer(cfg ServerConfig) *http.Server {
 	}
 }
 
+// ListenAndServe starts the server on the configured address.
 func ListenAndServe(srv *http.Server) error {
 	ln, err := net.Listen("tcp", srv.Addr)
 	if err != nil {

@@ -20,6 +20,7 @@ const (
 	DefaultMaxRoleDepth = 10
 )
 
+// Paths holds XDG-compliant directory paths.
 type Paths struct {
 	ConfigDir string
 	StateDir  string
@@ -31,6 +32,7 @@ func init() {
 	GlobalPaths = GetPaths()
 }
 
+// GetPaths returns XDG-compliant directory paths.
 func GetPaths() *Paths {
 	configHome := os.Getenv("XDG_CONFIG_HOME")
 	if configHome == "" {
@@ -58,6 +60,7 @@ func GetPaths() *Paths {
 	}
 }
 
+// InitDirs creates all necessary directories.
 func InitDirs() error {
 	dirs := []string{
 		GlobalPaths.ConfigDir,
@@ -71,6 +74,7 @@ func InitDirs() error {
 	return nil
 }
 
+// InitViper sets up viper defaults and config file search paths.
 func InitViper() {
 	viper.SetDefault("bind", DefaultBind)
 	viper.SetDefault("port", DefaultPort)
@@ -88,6 +92,7 @@ func InitViper() {
 	viper.AutomaticEnv()
 }
 
+// LoadConfig reads the config file if present.
 func LoadConfig() error {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -98,6 +103,7 @@ func LoadConfig() error {
 	return nil
 }
 
+// BindFlags binds cobra flags to viper.
 func BindFlags(flags *pflag.FlagSet) error {
 	flagsToBind := []string{"log-level"}
 	for _, name := range flagsToBind {

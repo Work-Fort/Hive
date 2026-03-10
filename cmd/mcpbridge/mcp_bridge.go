@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmd returns the mcp-bridge cobra command.
 func NewCmd() *cobra.Command {
 	var agentID string
 	var host string

@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// HealthStatus represents the overall system health.
 type HealthStatus string
 
 const (
@@ -15,34 +16,40 @@ const (
 	StatusUnhealthy HealthStatus = "unhealthy"
 )
 
+// HealthReport is returned by the health endpoint.
 type HealthReport struct {
 	Status   HealthStatus `json:"status"`
 	Warnings []string     `json:"warnings,omitempty"`
 	Errors   []string     `json:"errors,omitempty"`
 }
 
+// HealthService tracks system health warnings and errors.
 type HealthService struct {
 	mu       sync.RWMutex
 	warnings []string
 	errors   []string
 }
 
+// NewHealthService creates a new HealthService.
 func NewHealthService() *HealthService {
 	return &HealthService{}
 }
 
+// AddWarning adds a health warning.
 func (h *HealthService) AddWarning(msg string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.warnings = append(h.warnings, msg)
 }
 
+// AddError adds a health error.
 func (h *HealthService) AddError(msg string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.errors = append(h.errors, msg)
 }
 
+// Status returns the current health report.
 func (h *HealthService) Status() HealthReport {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -64,6 +71,7 @@ func (h *HealthService) Status() HealthReport {
 	return report
 }
 
+// HandleHealth returns an http.HandlerFunc for the health endpoint.
 func HandleHealth(health *HealthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		report := health.Status()

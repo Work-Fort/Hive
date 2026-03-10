@@ -16,6 +16,7 @@ import (
 	"github.com/Work-Fort/Hive/internal/config"
 )
 
+// Version is set at build time via ldflags.
 var Version string
 
 var rootCmd = &cobra.Command{
