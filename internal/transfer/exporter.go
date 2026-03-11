@@ -138,7 +138,7 @@ func Export(ctx context.Context, ds DataSource, dir string) (*ExportResult, erro
 		}
 		for _, d := range docs {
 			if err := writeDocument(dir, "role", r.Name, d); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("write document for role %q: %w", r.Name, err)
 			}
 			result.Documents++
 		}
@@ -150,7 +150,7 @@ func Export(ctx context.Context, ds DataSource, dir string) (*ExportResult, erro
 		}
 		for _, d := range docs {
 			if err := writeDocument(dir, "agent", a.Name, d); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("write document for agent %q: %w", a.Name, err)
 			}
 			result.Documents++
 		}
@@ -202,8 +202,10 @@ func writeDocument(dir, kind, ownerName string, d *domain.Document) error {
 	}
 	if kind == "role" {
 		fm.Role = ownerName
-	} else {
+	} else if kind == "agent" {
 		fm.Agent = ownerName
+	} else {
+		return fmt.Errorf("unknown document kind %q", kind)
 	}
 	data, err := MarshalFrontMatter(fm, d.Content)
 	if err != nil {
