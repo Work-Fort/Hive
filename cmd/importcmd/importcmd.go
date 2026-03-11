@@ -67,12 +67,12 @@ func NewCmd() *cobra.Command {
 			} else {
 				fmt.Println("Imported:")
 			}
-			fmt.Printf("  Teams:       %d created, %d updated\n", result.Teams, result.Updated)
-			fmt.Printf("  Roles:       %d created, %d updated\n", result.Roles, result.Updated)
-			fmt.Printf("  Permissions: %d created, %d updated\n", result.Permissions, result.Updated)
-			fmt.Printf("  Agents:      %d created, %d updated\n", result.Agents, result.Updated)
-			fmt.Printf("  Documents:   %d created, %d updated\n", result.Documents, result.Updated)
-			fmt.Printf("  Tasks:       %d created, %d updated\n", result.Tasks, result.Updated)
+			fmt.Printf("  teams:       %d create, %d update\n", result.Teams, result.Updated)
+			fmt.Printf("  roles:       %d create\n", result.Roles)
+			fmt.Printf("  permissions: %d create\n", result.Permissions)
+			fmt.Printf("  agents:      %d create\n", result.Agents)
+			fmt.Printf("  documents:   %d create\n", result.Documents)
+			fmt.Printf("  tasks:       %d create\n", result.Tasks)
 
 			return nil
 		},
