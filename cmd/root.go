@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/viper"
 
 	daemonCmd "github.com/Work-Fort/Hive/cmd/daemon"
+	exportCmd "github.com/Work-Fort/Hive/cmd/export"
+	importCmd "github.com/Work-Fort/Hive/cmd/importcmd"
 	mcpBridgeCmd "github.com/Work-Fort/Hive/cmd/mcpbridge"
 	"github.com/Work-Fort/Hive/internal/config"
 )
@@ -98,5 +100,7 @@ func init() {
 	rootCmd.SilenceErrors = true
 
 	rootCmd.AddCommand(daemonCmd.NewCmd())
+	rootCmd.AddCommand(exportCmd.NewCmd())
+	rootCmd.AddCommand(importCmd.NewCmd())
 	rootCmd.AddCommand(mcpBridgeCmd.NewCmd())
 }
