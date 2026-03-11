@@ -173,3 +173,21 @@ func (s *Store) GetRoleChain(ctx context.Context, roleID string, maxDepth int) (
 	}
 	return chain, rows.Err()
 }
+
+func (s *Store) LookupRoleByName(ctx context.Context, name string) (*domain.Role, error) {
+	var r domain.Role
+	var parentID sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, name, parent_id, created_at, updated_at FROM roles WHERE name = ?", name,
+	).Scan(&r.ID, &r.Name, &parentID, &r.CreatedAt, &r.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: role named %q", domain.ErrNotFound, name)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup role by name: %w", err)
+	}
+	if parentID.Valid {
+		r.ParentID = parentID.String
+	}
+	return &r, nil
+}

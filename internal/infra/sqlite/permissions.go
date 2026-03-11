@@ -3,6 +3,8 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/Work-Fort/Hive/internal/domain"
@@ -101,4 +103,36 @@ func (s *Store) HasPermission(ctx context.Context, agentID, permName, scopeTeamI
 		return false, fmt.Errorf("check permission: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (s *Store) ListPermissions(ctx context.Context) ([]*domain.Permission, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id, name FROM permissions ORDER BY name")
+	if err != nil {
+		return nil, fmt.Errorf("list permissions: %w", err)
+	}
+	defer rows.Close()
+
+	var perms []*domain.Permission
+	for rows.Next() {
+		var p domain.Permission
+		if err := rows.Scan(&p.ID, &p.Name); err != nil {
+			return nil, fmt.Errorf("scan permission: %w", err)
+		}
+		perms = append(perms, &p)
+	}
+	return perms, rows.Err()
+}
+
+func (s *Store) LookupPermissionByName(ctx context.Context, name string) (*domain.Permission, error) {
+	var p domain.Permission
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, name FROM permissions WHERE name = ?", name,
+	).Scan(&p.ID, &p.Name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: permission named %q", domain.ErrNotFound, name)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup permission by name: %w", err)
+	}
+	return &p, nil
 }

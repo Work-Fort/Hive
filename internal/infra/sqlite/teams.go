@@ -111,3 +111,17 @@ func (s *Store) DeleteTeam(ctx context.Context, id string) error {
 	}
 	return tx.Commit()
 }
+
+func (s *Store) LookupTeamByName(ctx context.Context, name string) (*domain.Team, error) {
+	var t domain.Team
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, name, created_at, updated_at FROM teams WHERE name = ?", name,
+	).Scan(&t.ID, &t.Name, &t.CreatedAt, &t.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: team named %q", domain.ErrNotFound, name)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup team by name: %w", err)
+	}
+	return &t, nil
+}

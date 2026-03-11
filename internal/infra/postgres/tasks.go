@@ -97,3 +97,22 @@ func (s *Store) DeleteTask(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+func (s *Store) LookupTaskByTeamAndTitle(ctx context.Context, teamID, title string) (*domain.Task, error) {
+	var t domain.Task
+	var agentID sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, team_id, agent_id, title, description, status, created_at, updated_at FROM tasks WHERE team_id = $1 AND title = $2",
+		teamID, title,
+	).Scan(&t.ID, &t.TeamID, &agentID, &t.Title, &t.Description, &t.Status, &t.CreatedAt, &t.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: task titled %q in team %q", domain.ErrNotFound, title, teamID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup task by team and title: %w", err)
+	}
+	if agentID.Valid {
+		t.AgentID = agentID.String
+	}
+	return &t, nil
+}

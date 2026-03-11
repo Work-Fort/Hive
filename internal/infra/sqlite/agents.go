@@ -155,3 +155,17 @@ func (s *Store) GetAgentRoles(ctx context.Context, agentID string) ([]domain.Age
 	}
 	return roles, rows.Err()
 }
+
+func (s *Store) LookupAgentByName(ctx context.Context, name string) (*domain.Agent, error) {
+	var a domain.Agent
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, name, team_id, created_at, updated_at FROM agents WHERE name = ?", name,
+	).Scan(&a.ID, &a.Name, &a.TeamID, &a.CreatedAt, &a.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: agent named %q", domain.ErrNotFound, name)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup agent by name: %w", err)
+	}
+	return &a, nil
+}

@@ -107,3 +107,25 @@ func (s *Store) listDocuments(ctx context.Context, query string, arg string) ([]
 	}
 	return docs, rows.Err()
 }
+
+func (s *Store) LookupDocumentByOwnerAndTitle(ctx context.Context, ownerID, title string) (*domain.Document, error) {
+	var d domain.Document
+	var roleID, agentID sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, kind, title, content, role_id, agent_id, created_at, updated_at FROM documents WHERE (role_id = ? OR agent_id = ?) AND title = ?",
+		ownerID, ownerID, title,
+	).Scan(&d.ID, &d.Kind, &d.Title, &d.Content, &roleID, &agentID, &d.CreatedAt, &d.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: document titled %q for owner %q", domain.ErrNotFound, title, ownerID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lookup document by owner and title: %w", err)
+	}
+	if roleID.Valid {
+		d.RoleID = roleID.String
+	}
+	if agentID.Valid {
+		d.AgentID = agentID.String
+	}
+	return &d, nil
+}
