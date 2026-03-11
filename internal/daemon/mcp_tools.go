@@ -281,9 +281,6 @@ func makeGetTask(deps MCPDeps) server.ToolHandlerFunc {
 		if errResult != nil {
 			return errResult, nil
 		}
-		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:read", agent.TeamID); err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
 		id, err := request.RequireString("id")
 		if err != nil {
 			return mcp.NewToolResultError("missing required parameter: id"), nil
@@ -294,6 +291,9 @@ func makeGetTask(deps MCPDeps) server.ToolHandlerFunc {
 				return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
 			}
 			return mcp.NewToolResultError(fmt.Sprintf("get task failed: %v", err)), nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:read", task.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		if task.TeamID != agent.TeamID {
 			return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
@@ -338,9 +338,6 @@ func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 		if errResult != nil {
 			return errResult, nil
 		}
-		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", agent.TeamID); err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
 		id, err := request.RequireString("id")
 		if err != nil {
 			return mcp.NewToolResultError("missing required parameter: id"), nil
@@ -351,6 +348,9 @@ func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 				return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
 			}
 			return mcp.NewToolResultError(fmt.Sprintf("get task failed: %v", err)), nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", existing.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		if existing.TeamID != agent.TeamID {
 			return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
@@ -388,9 +388,6 @@ func makeDeleteTask(deps MCPDeps) server.ToolHandlerFunc {
 		if errResult != nil {
 			return errResult, nil
 		}
-		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", agent.TeamID); err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
 		id, err := request.RequireString("id")
 		if err != nil {
 			return mcp.NewToolResultError("missing required parameter: id"), nil
@@ -401,6 +398,9 @@ func makeDeleteTask(deps MCPDeps) server.ToolHandlerFunc {
 				return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
 			}
 			return mcp.NewToolResultError(fmt.Sprintf("get task failed: %v", err)), nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", existing.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		if existing.TeamID != agent.TeamID {
 			return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
