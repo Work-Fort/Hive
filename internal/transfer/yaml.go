@@ -22,7 +22,7 @@ type TeamFile struct {
 
 type RoleFile struct {
 	Name      string    `yaml:"name"`
-	Parent    string    `yaml:"parent"`
+	Parent    string    `yaml:"parent,omitempty"`
 	CreatedAt time.Time `yaml:"created_at"`
 	UpdatedAt time.Time `yaml:"updated_at"`
 }
@@ -94,12 +94,17 @@ func UnmarshalFrontMatter(r io.Reader) (*DocumentFrontMatter, string, error) {
 	}
 
 	var fmLines []string
+	var closingFound bool
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.TrimSpace(line) == "---" {
+			closingFound = true
 			break
 		}
 		fmLines = append(fmLines, line)
+	}
+	if !closingFound {
+		return nil, "", fmt.Errorf("front matter closing delimiter '---' not found")
 	}
 
 	var fm DocumentFrontMatter
