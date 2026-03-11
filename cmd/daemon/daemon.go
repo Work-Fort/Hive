@@ -85,6 +85,7 @@ func run(bind string, port int, db, apiKey string) error {
 	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
 		Bind:   bind,
 		Port:   port,
+		APIKey: apiKey,
 		Health: health,
 		Store:  store,
 	})

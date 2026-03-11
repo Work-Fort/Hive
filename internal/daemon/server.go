@@ -14,6 +14,7 @@ import (
 type ServerConfig struct {
 	Bind   string
 	Port   int
+	APIKey string
 	Health *HealthService
 	Store  domain.Store
 }
@@ -24,16 +25,70 @@ func NewServer(cfg ServerConfig) *http.Server {
 
 	mux.HandleFunc("GET /v1/health", HandleHealth(cfg.Health))
 
-	// MCP placeholder — will be wired to mcp-go StreamableHTTPServer in plan 005.
+	// REST API routes
+	rest := NewREST(cfg.Store)
+
+	// Teams
+	mux.HandleFunc("GET /v1/teams", rest.ListTeams)
+	mux.HandleFunc("POST /v1/teams", rest.CreateTeam)
+	mux.HandleFunc("GET /v1/teams/{id}", rest.GetTeam)
+	mux.HandleFunc("PUT /v1/teams/{id}", rest.UpdateTeam)
+	mux.HandleFunc("DELETE /v1/teams/{id}", rest.DeleteTeam)
+
+	// Roles
+	mux.HandleFunc("GET /v1/roles", rest.ListRoles)
+	mux.HandleFunc("POST /v1/roles", rest.CreateRole)
+	mux.HandleFunc("GET /v1/roles/{id}", rest.GetRole)
+	mux.HandleFunc("PUT /v1/roles/{id}", rest.UpdateRole)
+	mux.HandleFunc("DELETE /v1/roles/{id}", rest.DeleteRole)
+
+	// Role documents
+	mux.HandleFunc("GET /v1/roles/{id}/documents", rest.ListRoleDocuments)
+	mux.HandleFunc("POST /v1/roles/{id}/documents", rest.CreateRoleDocument)
+
+	// Standalone documents
+	mux.HandleFunc("GET /v1/documents/{id}", rest.GetDocument)
+	mux.HandleFunc("PUT /v1/documents/{id}", rest.UpdateDocument)
+	mux.HandleFunc("DELETE /v1/documents/{id}", rest.DeleteDocument)
+
+	// Agents
+	mux.HandleFunc("GET /v1/agents", rest.ListAgents)
+	mux.HandleFunc("POST /v1/agents", rest.CreateAgent)
+	mux.HandleFunc("GET /v1/agents/{id}", rest.GetAgent)
+	mux.HandleFunc("PUT /v1/agents/{id}", rest.UpdateAgent)
+	mux.HandleFunc("DELETE /v1/agents/{id}", rest.DeleteAgent)
+
+	// Agent roles
+	mux.HandleFunc("PUT /v1/agents/{id}/roles", rest.SetAgentRoles)
+
+	// Agent memory
+	mux.HandleFunc("GET /v1/agents/{id}/memory", rest.ListAgentMemory)
+	mux.HandleFunc("POST /v1/agents/{id}/memory", rest.CreateAgentMemory)
+
+	// Tasks
+	mux.HandleFunc("GET /v1/teams/{id}/tasks", rest.ListTeamTasks)
+	mux.HandleFunc("POST /v1/tasks", rest.CreateTask)
+	mux.HandleFunc("GET /v1/tasks/{id}", rest.GetTask)
+	mux.HandleFunc("PUT /v1/tasks/{id}", rest.UpdateTask)
+	mux.HandleFunc("DELETE /v1/tasks/{id}", rest.DeleteTask)
+
+	// Permissions
+	mux.HandleFunc("GET /v1/agents/{id}/permissions", rest.GetAgentPermissions)
+	mux.HandleFunc("PUT /v1/agents/{id}/permissions", rest.SetAgentPermissions)
+
+	// MCP placeholder
 	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "MCP server not yet implemented", http.StatusNotImplemented)
 	})
+
+	// Wrap with API key auth middleware
+	handler := APIKeyAuth(cfg.APIKey, mux)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Bind, cfg.Port)
 
 	return &http.Server{
 		Addr:         addr,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
