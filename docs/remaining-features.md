@@ -43,7 +43,7 @@ MCP tool registration on `POST /mcp`. Session-aware tool filtering based on
 agent permissions — agents only see tools they can use. Tools: get_provisioning,
 memory CRUD, task CRUD.
 
-## 6. RBAC
+## ~~6. RBAC~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/006-rbac.md)
 
