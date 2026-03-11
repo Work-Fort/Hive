@@ -38,7 +38,7 @@ func NewServer(cfg ServerConfig) *http.Server {
 	registerAgentRoutes(api, cfg.Store)
 	registerTaskRoutes(api, cfg.Store)
 	registerPermissionRoutes(api, cfg.Store)
-	registerPermissionListRoutes(api, cfg.Store)
+	registerPermissionEntityRoutes(api, cfg.Store)
 
 	// Health — raw handler (conditional status codes 200/218/503)
 	mux.HandleFunc("GET /v1/health", HandleHealth(cfg.Health))

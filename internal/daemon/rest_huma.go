@@ -86,6 +86,10 @@ func permToResponse(p domain.AgentPermission) permissionResponse {
 	}
 }
 
+func permEntityToResponse(p *domain.Permission) permissionEntityResponse {
+	return permissionEntityResponse{ID: p.ID, Name: p.Name}
+}
+
 // validTaskStatus checks whether the given string is a valid task status.
 func validTaskStatus(s string) bool {
 	switch domain.TaskStatus(s) {
@@ -659,21 +663,21 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 
 // --- permission entity routes ---
 
-func registerPermissionListRoutes(api huma.API, store domain.Store) {
+func registerPermissionEntityRoutes(api huma.API, store domain.Store) {
 	huma.Register(api, huma.Operation{
 		OperationID: "list-permissions",
 		Method:      http.MethodGet,
 		Path:        "/v1/permissions",
 		Summary:     "List all permissions",
 		Tags:        []string{"Permissions"},
-	}, func(ctx context.Context, input *struct{}) (*listPermissionsOutput, error) {
+	}, func(ctx context.Context, input *struct{}) (*ListPermissionsOutput, error) {
 		perms, err := store.ListPermissions(ctx)
 		if err != nil {
 			return nil, mapDomainErr(err)
 		}
-		out := &listPermissionsOutput{}
+		out := &ListPermissionsOutput{}
 		for _, p := range perms {
-			out.Body = append(out.Body, permissionEntityResponse{ID: p.ID, Name: p.Name})
+			out.Body = append(out.Body, permEntityToResponse(p))
 		}
 		return out, nil
 	})
@@ -685,7 +689,7 @@ func registerPermissionListRoutes(api huma.API, store domain.Store) {
 		Summary:       "Create a permission",
 		DefaultStatus: 201,
 		Tags:          []string{"Permissions"},
-	}, func(ctx context.Context, input *createPermissionInput) (*createPermissionOutput, error) {
+	}, func(ctx context.Context, input *CreatePermissionInput) (*CreatePermissionOutput, error) {
 		if err := store.SeedPermissions(ctx, []string{input.Body.Name}); err != nil {
 			return nil, mapDomainErr(err)
 		}
@@ -693,7 +697,7 @@ func registerPermissionListRoutes(api huma.API, store domain.Store) {
 		if err != nil {
 			return nil, mapDomainErr(err)
 		}
-		return &createPermissionOutput{Body: permissionEntityResponse{ID: p.ID, Name: p.Name}}, nil
+		return &CreatePermissionOutput{Body: permEntityToResponse(p)}, nil
 	})
 }
 

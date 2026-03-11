@@ -272,8 +272,8 @@ type permissionResponse struct {
 
 // -- Permission Entities --
 
-type listPermissionsOutput struct {
-	Body []permissionEntityResponse `json:"body"`
+type ListPermissionsOutput struct {
+	Body []permissionEntityResponse
 }
 
 type permissionEntityResponse struct {
@@ -281,12 +281,12 @@ type permissionEntityResponse struct {
 	Name string `json:"Name" doc:"Permission name"`
 }
 
-type createPermissionInput struct {
+type CreatePermissionInput struct {
 	Body struct {
 		Name string `json:"name" doc:"Permission name" minLength:"1"`
 	}
 }
 
-type createPermissionOutput struct {
-	Body permissionEntityResponse `json:"body"`
+type CreatePermissionOutput struct {
+	Body permissionEntityResponse
 }
