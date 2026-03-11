@@ -205,6 +205,9 @@ func TestMemoryCRUD(t *testing.T) {
 	if updated.Title != "Updated Note" {
 		t.Errorf("update: got title %q, want %q", updated.Title, "Updated Note")
 	}
+	if updated.Content != "Hello world" {
+		t.Errorf("content = %q, want preserved value %q", updated.Content, "Hello world")
+	}
 
 	// Delete
 	deleteHandler := makeDeleteMemory(env.deps)
