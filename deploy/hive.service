@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[Unit]
+Description=Hive agent provisioning daemon
+Documentation=https://github.com/Work-Fort/Hive
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/hive daemon
+ExecStartPost=/bin/sh -c 'for i in $(seq 1 30); do curl -sf http://127.0.0.1:17000/v1/health && exit 0; sleep 1; done; exit 1'
+Restart=on-failure
+RestartSec=5s
+
+# Load the API key from a file so it is not exposed in `systemctl status`.
+# Create the file with:  install -m 600 /dev/null ~/.config/hive/api-key
+# Then write your key:   echo -n 'your-key-here' > ~/.config/hive/api-key
+EnvironmentFile=-%h/.config/hive/env
+
+# Override defaults via environment (matches HIVE_* prefix in config.go).
+# These can be overridden by placing the same vars in ~/.config/hive/env.
+Environment=HIVE_LOG_LEVEL=info
+
+[Install]
+WantedBy=default.target
