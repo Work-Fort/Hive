@@ -27,7 +27,7 @@ for role chain queries verified with EXPLAIN QUERY PLAN (indexed lookups).
 Full CRUD endpoints under `/v1` for teams, roles, documents, agents, tasks,
 and permissions. API key authentication. JSON request/response bodies.
 
-## 4. Provisioning Resolution
+## ~~4. Provisioning Resolution~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/004-provisioning.md)
 
