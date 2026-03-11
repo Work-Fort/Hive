@@ -65,7 +65,7 @@ database connectivity. Health endpoint returns healthy/degraded/unhealthy.
 PostgreSQL store mirroring SQLite implementation. Same port interfaces, pgx
 driver, own goose migrations. DSN auto-detection in `internal/infra/open.go`.
 
-## 9. Public Client Package
+## ~~9. Public Client Package~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/009-client-package.md)
 
