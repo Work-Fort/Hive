@@ -58,7 +58,7 @@ Seeded permission set on first run.
 Global health registry with boot-time and periodic checks. Role depth audit,
 database connectivity. Health endpoint returns healthy/degraded/unhealthy.
 
-## 8. PostgreSQL Store
+## ~~8. PostgreSQL Store~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/008-postgres.md)
 
