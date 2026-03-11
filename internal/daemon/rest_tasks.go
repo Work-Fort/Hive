@@ -7,14 +7,6 @@ import (
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
-func validTaskStatus(s string) bool {
-	switch domain.TaskStatus(s) {
-	case domain.TaskStatusPending, domain.TaskStatusInProgress, domain.TaskStatusCompleted:
-		return true
-	}
-	return false
-}
-
 func (h *REST) ListTeamTasks(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("id")
 	if _, err := h.store.GetTeam(r.Context(), teamID); mapDomainError(w, err) {

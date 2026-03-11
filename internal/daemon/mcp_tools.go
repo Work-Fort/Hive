@@ -230,7 +230,7 @@ func makeDeleteMemory(deps MCPDeps) server.ToolHandlerFunc {
 
 // --- Task tools ---
 
-type taskResponse struct {
+type mcpTaskResponse struct {
 	ID          string    `json:"id"`
 	TeamID      string    `json:"team_id"`
 	AgentID     string    `json:"agent_id,omitempty"`
@@ -241,8 +241,8 @@ type taskResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func toTaskResponse(t *domain.Task) taskResponse {
-	return taskResponse{
+func toMCPTaskResponse(t *domain.Task) mcpTaskResponse {
+	return mcpTaskResponse{
 		ID:          t.ID,
 		TeamID:      t.TeamID,
 		AgentID:     t.AgentID,
@@ -267,9 +267,9 @@ func makeListTasks(deps MCPDeps) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("list tasks failed: %v", err)), nil
 		}
-		items := make([]taskResponse, len(tasks))
+		items := make([]mcpTaskResponse, len(tasks))
 		for i, t := range tasks {
-			items[i] = toTaskResponse(t)
+			items[i] = toMCPTaskResponse(t)
 		}
 		return jsonResult(items)
 	}
@@ -298,7 +298,7 @@ func makeGetTask(deps MCPDeps) server.ToolHandlerFunc {
 		if task.TeamID != agent.TeamID {
 			return mcp.NewToolResultError(fmt.Sprintf("task %q not found", id)), nil
 		}
-		return jsonResult(toTaskResponse(task))
+		return jsonResult(toMCPTaskResponse(task))
 	}
 }
 
@@ -328,7 +328,7 @@ func makeCreateTask(deps MCPDeps) server.ToolHandlerFunc {
 		if err := deps.Store.CreateTask(ctx, task); err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("create task failed: %v", err)), nil
 		}
-		return jsonResult(toTaskResponse(task))
+		return jsonResult(toMCPTaskResponse(task))
 	}
 }
 
@@ -378,7 +378,7 @@ func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("re-fetch task failed: %v", err)), nil
 		}
-		return jsonResult(toTaskResponse(result))
+		return jsonResult(toMCPTaskResponse(result))
 	}
 }
 

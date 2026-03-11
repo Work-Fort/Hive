@@ -273,7 +273,7 @@ func TestTaskCRUD(t *testing.T) {
 		t.Fatalf("create: expected success, got error: %s", resultText(t, result))
 	}
 
-	var created taskResponse
+	var created mcpTaskResponse
 	unmarshalResult(t, result, &created)
 
 	if created.ID == "" {
@@ -296,7 +296,7 @@ func TestTaskCRUD(t *testing.T) {
 		t.Fatalf("list: expected success, got error: %s", resultText(t, result))
 	}
 
-	var items []taskResponse
+	var items []mcpTaskResponse
 	unmarshalResult(t, result, &items)
 
 	if len(items) != 1 {
@@ -320,7 +320,7 @@ func TestTaskCRUD(t *testing.T) {
 		t.Fatalf("update: expected success, got error: %s", resultText(t, result))
 	}
 
-	var updated taskResponse
+	var updated mcpTaskResponse
 	unmarshalResult(t, result, &updated)
 
 	if updated.Status != "in_progress" {
@@ -353,7 +353,7 @@ func TestTaskTeamIsolation(t *testing.T) {
 		t.Fatalf("create: expected success, got error: %s", resultText(t, result))
 	}
 
-	var created taskResponse
+	var created mcpTaskResponse
 	unmarshalResult(t, result, &created)
 
 	// Create agent2 on a different team
@@ -400,7 +400,7 @@ func TestUpdateTaskInvalidStatus(t *testing.T) {
 		t.Fatalf("create: expected success, got error: %s", resultText(t, result))
 	}
 
-	var created taskResponse
+	var created mcpTaskResponse
 	unmarshalResult(t, result, &created)
 
 	// Try to update with invalid status
