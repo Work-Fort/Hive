@@ -51,7 +51,7 @@ Permission enforcement across REST and MCP. Per-agent grants with optional
 team scope. Permission checks in REST middleware and MCP auth middleware.
 Seeded permission set on first run.
 
-## 7. Health Service
+## ~~7. Health Service~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/007-health-service.md)
 
