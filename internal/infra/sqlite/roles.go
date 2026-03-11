@@ -6,19 +6,28 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
 func (s *Store) CreateRole(ctx context.Context, r *domain.Role) error {
+	now := time.Now().UTC()
+	if r.CreatedAt.IsZero() {
+		r.CreatedAt = now
+	}
+	if r.UpdatedAt.IsZero() {
+		r.UpdatedAt = now
+	}
+
 	var parentID *string
 	if r.ParentID != "" {
 		parentID = &r.ParentID
 	}
 
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO roles (id, name, parent_id) VALUES (?, ?, ?)",
-		r.ID, r.Name, parentID)
+		"INSERT INTO roles (id, name, parent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+		r.ID, r.Name, parentID, r.CreatedAt.UTC(), r.UpdatedAt.UTC())
 	if err != nil {
 		if isUniqueViolation(err) {
 			return fmt.Errorf("%w: role %q", domain.ErrAlreadyExists, r.Name)

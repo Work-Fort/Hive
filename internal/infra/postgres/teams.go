@@ -6,14 +6,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
 func (s *Store) CreateTeam(ctx context.Context, t *domain.Team) error {
+	now := time.Now().UTC()
+	if t.CreatedAt.IsZero() {
+		t.CreatedAt = now
+	}
+	if t.UpdatedAt.IsZero() {
+		t.UpdatedAt = now
+	}
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO teams (id, name) VALUES ($1, $2)",
-		t.ID, t.Name)
+		"INSERT INTO teams (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)",
+		t.ID, t.Name, t.CreatedAt.UTC(), t.UpdatedAt.UTC())
 	if err != nil {
 		if isUniqueViolation(err) {
 			return fmt.Errorf("%w: team %q", domain.ErrAlreadyExists, t.Name)

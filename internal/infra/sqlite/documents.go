@@ -6,11 +6,20 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
 func (s *Store) CreateDocument(ctx context.Context, d *domain.Document) error {
+	now := time.Now().UTC()
+	if d.CreatedAt.IsZero() {
+		d.CreatedAt = now
+	}
+	if d.UpdatedAt.IsZero() {
+		d.UpdatedAt = now
+	}
+
 	var roleID, agentID *string
 	if d.RoleID != "" {
 		roleID = &d.RoleID
@@ -20,8 +29,8 @@ func (s *Store) CreateDocument(ctx context.Context, d *domain.Document) error {
 	}
 
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO documents (id, kind, title, content, role_id, agent_id) VALUES (?, ?, ?, ?, ?, ?)",
-		d.ID, d.Kind, d.Title, d.Content, roleID, agentID)
+		"INSERT INTO documents (id, kind, title, content, role_id, agent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		d.ID, d.Kind, d.Title, d.Content, roleID, agentID, d.CreatedAt.UTC(), d.UpdatedAt.UTC())
 	if err != nil {
 		return fmt.Errorf("insert document: %w", err)
 	}

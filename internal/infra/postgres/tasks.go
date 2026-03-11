@@ -6,19 +6,28 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
 func (s *Store) CreateTask(ctx context.Context, t *domain.Task) error {
+	now := time.Now().UTC()
+	if t.CreatedAt.IsZero() {
+		t.CreatedAt = now
+	}
+	if t.UpdatedAt.IsZero() {
+		t.UpdatedAt = now
+	}
+
 	var agentID *string
 	if t.AgentID != "" {
 		agentID = &t.AgentID
 	}
 
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO tasks (id, team_id, agent_id, title, description, status) VALUES ($1, $2, $3, $4, $5, $6)",
-		t.ID, t.TeamID, agentID, t.Title, t.Description, t.Status)
+		"INSERT INTO tasks (id, team_id, agent_id, title, description, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		t.ID, t.TeamID, agentID, t.Title, t.Description, t.Status, t.CreatedAt.UTC(), t.UpdatedAt.UTC())
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}
