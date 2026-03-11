@@ -12,11 +12,12 @@ import (
 
 // ServerConfig holds configuration for the HTTP server.
 type ServerConfig struct {
-	Bind   string
-	Port   int
-	APIKey string
-	Health *HealthService
-	Store  domain.Store
+	Bind         string
+	Port         int
+	APIKey       string
+	Health       *HealthService
+	Store        domain.Store
+	Provisioning *ProvisioningService
 }
 
 // NewServer creates and configures the HTTP server.

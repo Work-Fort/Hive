@@ -82,12 +82,20 @@ func run(bind string, port int, db, apiKey string) error {
 		return fmt.Errorf("seed permissions: %w", err)
 	}
 
+	// Provisioning
+	maxRoleDepth := viper.GetInt("max-role-depth")
+	provisioning := hiveDaemon.NewProvisioningService(store, health, maxRoleDepth)
+
+	// Boot-time checks
+	provisioning.AuditRoleDepths(context.Background())
+
 	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
-		Bind:   bind,
-		Port:   port,
-		APIKey: apiKey,
-		Health: health,
-		Store:  store,
+		Bind:         bind,
+		Port:         port,
+		APIKey:       apiKey,
+		Health:       health,
+		Store:        store,
+		Provisioning: provisioning,
 	})
 
 	sigCh := make(chan os.Signal, 1)
