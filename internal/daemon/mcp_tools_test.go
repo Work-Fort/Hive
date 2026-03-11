@@ -67,6 +67,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 	deps := MCPDeps{
 		Store:        store,
 		Provisioning: provisioning,
+		Authz:        NewAuthzService(store),
 	}
 
 	ctx := contextWithAgentID(context.Background(), agent.ID)

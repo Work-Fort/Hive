@@ -45,6 +45,12 @@ func makeGetProvisioning(deps MCPDeps) server.ToolHandlerFunc {
 		if errResult != nil {
 			return errResult, nil
 		}
+		if err := deps.Authz.RequireAny(ctx, agent.ID,
+			PermCheck{Name: "role:read"},
+			PermCheck{Name: "memory:read"},
+		); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		resp, err := deps.Provisioning.Resolve(ctx, agent.ID)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("provisioning resolve failed: %v", err)), nil
@@ -75,9 +81,12 @@ func toMemoryDocResponse(d *domain.Document) memoryDocResponse {
 
 func makeListMemory(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "memory:read", ""); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		docs, err := deps.Store.ListAgentMemory(ctx, agent.ID)
 		if err != nil {
@@ -97,9 +106,12 @@ func makeListMemory(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeGetMemory(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "memory:read", ""); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
@@ -121,9 +133,12 @@ func makeGetMemory(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeCreateMemory(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "memory:write", ""); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		title, err := request.RequireString("title")
 		if err != nil {
@@ -149,9 +164,12 @@ func makeCreateMemory(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeUpdateMemory(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "memory:write", ""); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
@@ -182,9 +200,12 @@ func makeUpdateMemory(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeDeleteMemory(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "memory:write", ""); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
@@ -235,9 +256,12 @@ func toTaskResponse(t *domain.Task) taskResponse {
 
 func makeListTasks(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:read", agent.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		tasks, err := deps.Store.ListTeamTasks(ctx, agent.TeamID)
 		if err != nil {
@@ -253,9 +277,12 @@ func makeListTasks(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeGetTask(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:read", agent.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
@@ -277,9 +304,12 @@ func makeGetTask(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeCreateTask(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", agent.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		title, err := request.RequireString("title")
 		if err != nil {
@@ -304,9 +334,12 @@ func makeCreateTask(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", agent.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
@@ -351,9 +384,12 @@ func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 
 func makeDeleteTask(deps MCPDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, agent, errResult := requireAgent(ctx, deps.Store)
+		ctx, agent, errResult := requireAgent(ctx, deps.Store)
 		if errResult != nil {
 			return errResult, nil
+		}
+		if err := deps.Authz.CheckPermission(ctx, agent.ID, "task:write", agent.TeamID); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		id, err := request.RequireString("id")
 		if err != nil {
