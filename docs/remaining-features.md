@@ -35,7 +35,7 @@ Role composition engine: recursive CTE walks inheritance chains, collects
 documents hierarchically, respects priority ordering and configurable depth
 limit. Cycle detection on write. Depth audit on boot.
 
-## 5. MCP Server
+## ~~5. MCP Server~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/005-mcp-server.md)
 
