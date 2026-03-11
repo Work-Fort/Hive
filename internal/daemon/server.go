@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humago"
+
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
@@ -24,60 +27,22 @@ type ServerConfig struct {
 func NewServer(cfg ServerConfig) *http.Server {
 	mux := http.NewServeMux()
 
+	// Huma API — registers /openapi and /docs automatically on the mux.
+	config := huma.DefaultConfig("Hive API", "1.0.0")
+	api := humago.New(mux, config)
+
+	// REST API routes via Huma
+	registerTeamRoutes(api, cfg.Store)
+	registerRoleRoutes(api, cfg.Store)
+	registerDocumentRoutes(api, cfg.Store)
+	registerAgentRoutes(api, cfg.Store)
+	registerTaskRoutes(api, cfg.Store)
+	registerPermissionRoutes(api, cfg.Store)
+
+	// Health — raw handler (conditional status codes 200/218/503)
 	mux.HandleFunc("GET /v1/health", HandleHealth(cfg.Health))
 
-	// REST API routes
-	rest := NewREST(cfg.Store)
-
-	// Teams
-	mux.HandleFunc("GET /v1/teams", rest.ListTeams)
-	mux.HandleFunc("POST /v1/teams", rest.CreateTeam)
-	mux.HandleFunc("GET /v1/teams/{id}", rest.GetTeam)
-	mux.HandleFunc("PUT /v1/teams/{id}", rest.UpdateTeam)
-	mux.HandleFunc("DELETE /v1/teams/{id}", rest.DeleteTeam)
-
-	// Roles
-	mux.HandleFunc("GET /v1/roles", rest.ListRoles)
-	mux.HandleFunc("POST /v1/roles", rest.CreateRole)
-	mux.HandleFunc("GET /v1/roles/{id}", rest.GetRole)
-	mux.HandleFunc("PUT /v1/roles/{id}", rest.UpdateRole)
-	mux.HandleFunc("DELETE /v1/roles/{id}", rest.DeleteRole)
-
-	// Role documents
-	mux.HandleFunc("GET /v1/roles/{id}/documents", rest.ListRoleDocuments)
-	mux.HandleFunc("POST /v1/roles/{id}/documents", rest.CreateRoleDocument)
-
-	// Standalone documents
-	mux.HandleFunc("GET /v1/documents/{id}", rest.GetDocument)
-	mux.HandleFunc("PUT /v1/documents/{id}", rest.UpdateDocument)
-	mux.HandleFunc("DELETE /v1/documents/{id}", rest.DeleteDocument)
-
-	// Agents
-	mux.HandleFunc("GET /v1/agents", rest.ListAgents)
-	mux.HandleFunc("POST /v1/agents", rest.CreateAgent)
-	mux.HandleFunc("GET /v1/agents/{id}", rest.GetAgent)
-	mux.HandleFunc("PUT /v1/agents/{id}", rest.UpdateAgent)
-	mux.HandleFunc("DELETE /v1/agents/{id}", rest.DeleteAgent)
-
-	// Agent roles
-	mux.HandleFunc("PUT /v1/agents/{id}/roles", rest.SetAgentRoles)
-
-	// Agent memory
-	mux.HandleFunc("GET /v1/agents/{id}/memory", rest.ListAgentMemory)
-	mux.HandleFunc("POST /v1/agents/{id}/memory", rest.CreateAgentMemory)
-
-	// Tasks
-	mux.HandleFunc("GET /v1/teams/{id}/tasks", rest.ListTeamTasks)
-	mux.HandleFunc("POST /v1/tasks", rest.CreateTask)
-	mux.HandleFunc("GET /v1/tasks/{id}", rest.GetTask)
-	mux.HandleFunc("PUT /v1/tasks/{id}", rest.UpdateTask)
-	mux.HandleFunc("DELETE /v1/tasks/{id}", rest.DeleteTask)
-
-	// Permissions
-	mux.HandleFunc("GET /v1/agents/{id}/permissions", rest.GetAgentPermissions)
-	mux.HandleFunc("PUT /v1/agents/{id}/permissions", rest.SetAgentPermissions)
-
-	// MCP server
+	// MCP server — raw handler (JSON-RPC 2.0, not REST)
 	authz := NewAuthzService(cfg.Store)
 	mcpHandler := NewMCPHandler(MCPDeps{
 		Store:        cfg.Store,
@@ -86,7 +51,8 @@ func NewServer(cfg ServerConfig) *http.Server {
 	})
 	mux.Handle("/mcp", mcpHandler)
 
-	// Wrap with API key auth middleware
+	// Wrap with API key auth middleware.
+	// Middleware already skips non-/v1/ paths, so /openapi and /docs are public.
 	handler := APIKeyAuth(cfg.APIKey, mux)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Bind, cfg.Port)
