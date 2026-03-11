@@ -21,4 +21,7 @@ var (
 	// ErrCycleDetected is returned when a role parent assignment would
 	// create a cycle in the inheritance chain.
 	ErrCycleDetected = errors.New("role inheritance cycle detected")
+
+	// ErrPermissionDenied is returned when an agent lacks a required permission.
+	ErrPermissionDenied = errors.New("permission denied")
 )
