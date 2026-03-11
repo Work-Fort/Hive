@@ -134,6 +134,7 @@ func makeCreateMemory(deps MCPDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("missing required parameter: content"), nil
 		}
 		doc := &domain.Document{
+			ID:      NewID("doc"),
 			Kind:    domain.DocumentKindMemory,
 			Title:   title,
 			Content: content,
@@ -287,6 +288,7 @@ func makeCreateTask(deps MCPDeps) server.ToolHandlerFunc {
 		description := request.GetString("description", "")
 		assignee := request.GetString("agent_id", "")
 		task := &domain.Task{
+			ID:          NewID("tk"),
 			TeamID:      agent.TeamID,
 			AgentID:     assignee,
 			Title:       title,
