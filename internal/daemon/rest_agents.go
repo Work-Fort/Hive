@@ -122,12 +122,12 @@ func (h *REST) SetAgentRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roles := make([]domain.AgentRole, len(req.Roles))
-	for i, r := range req.Roles {
-		if r.RoleID == "" {
+	for i, ar := range req.Roles {
+		if ar.RoleID == "" {
 			writeError(w, http.StatusBadRequest, "role_id is required for each role")
 			return
 		}
-		roles[i] = domain.AgentRole{AgentID: agentID, RoleID: r.RoleID, Priority: r.Priority}
+		roles[i] = domain.AgentRole{AgentID: agentID, RoleID: ar.RoleID, Priority: ar.Priority}
 	}
 	if mapDomainError(w, h.store.SetAgentRoles(r.Context(), agentID, roles)) {
 		return

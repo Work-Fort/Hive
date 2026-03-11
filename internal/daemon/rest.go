@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/charmbracelet/log"
+
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
@@ -23,11 +25,14 @@ func NewREST(store domain.Store) *REST {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSON encode error: %v", err)
+	}
 }
 
 // readJSON decodes the request body into v.
 func readJSON(r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20) // 1 MiB limit
 	defer r.Body.Close()
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()

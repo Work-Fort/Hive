@@ -2,6 +2,7 @@
 package daemon
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 )
@@ -30,7 +31,7 @@ func APIKeyAuth(apiKey string, next http.Handler) http.Handler {
 		}
 
 		token, found := strings.CutPrefix(auth, "Bearer ")
-		if !found || token != apiKey {
+		if !found || subtle.ConstantTimeCompare([]byte(token), []byte(apiKey)) != 1 {
 			writeError(w, http.StatusForbidden, "invalid api key")
 			return
 		}

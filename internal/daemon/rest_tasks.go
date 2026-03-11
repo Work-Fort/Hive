@@ -7,6 +7,14 @@ import (
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
+func validTaskStatus(s string) bool {
+	switch domain.TaskStatus(s) {
+	case domain.TaskStatusPending, domain.TaskStatusInProgress, domain.TaskStatusCompleted:
+		return true
+	}
+	return false
+}
+
 func (h *REST) ListTeamTasks(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("id")
 	if _, err := h.store.GetTeam(r.Context(), teamID); mapDomainError(w, err) {
@@ -49,6 +57,10 @@ func (h *REST) CreateTask(w http.ResponseWriter, r *http.Request) {
 	status := domain.TaskStatus(req.Status)
 	if status == "" {
 		status = domain.TaskStatusPending
+	}
+	if req.Status != "" && !validTaskStatus(req.Status) {
+		writeError(w, http.StatusBadRequest, "invalid status; must be pending, in_progress, or completed")
+		return
 	}
 
 	task := &domain.Task{
@@ -97,6 +109,10 @@ func (h *REST) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		existing.Description = req.Description
 	}
 	if req.Status != "" {
+		if !validTaskStatus(req.Status) {
+			writeError(w, http.StatusBadRequest, "invalid status; must be pending, in_progress, or completed")
+			return
+		}
 		existing.Status = domain.TaskStatus(req.Status)
 	}
 	existing.AgentID = req.AgentID
