@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -94,10 +95,10 @@ func TestHealthService_AddErrorCompat(t *testing.T) {
 
 func TestHealthService_PeriodicCheckUpdatesResult(t *testing.T) {
 	h := NewHealthService()
-	calls := 0
+	var calls atomic.Int32
 	h.RegisterPeriodicCheck("ticker", func(_ context.Context) CheckResult {
-		calls++
-		if calls == 1 {
+		calls.Add(1)
+		if calls.Load() == 1 {
 			return CheckResult{Severity: SeverityOK}
 		}
 		return CheckResult{Severity: SeverityWarning, Message: "flapped"}
@@ -112,7 +113,7 @@ func TestHealthService_PeriodicCheckUpdatesResult(t *testing.T) {
 
 	r := h.Report()
 	// After at least one tick the warning must have been recorded.
-	if r.Status == string(StatusHealthy) && calls > 1 {
+	if r.Status == string(StatusHealthy) && calls.Load() > 1 {
 		t.Errorf("expected degraded after periodic tick updated the result")
 	}
 }

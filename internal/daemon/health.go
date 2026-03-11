@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 )
@@ -146,6 +147,10 @@ func (h *HealthService) Report() HealthReport {
 			}
 		}
 	}
+
+	sort.Slice(checks, func(i, j int) bool {
+		return checks[i].Name < checks[j].Name
+	})
 
 	return HealthReport{
 		Status: string(overall),
