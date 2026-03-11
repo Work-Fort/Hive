@@ -77,10 +77,12 @@ func NewServer(cfg ServerConfig) *http.Server {
 	mux.HandleFunc("GET /v1/agents/{id}/permissions", rest.GetAgentPermissions)
 	mux.HandleFunc("PUT /v1/agents/{id}/permissions", rest.SetAgentPermissions)
 
-	// MCP placeholder
-	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "MCP server not yet implemented", http.StatusNotImplemented)
+	// MCP server
+	mcpHandler := NewMCPHandler(MCPDeps{
+		Store:        cfg.Store,
+		Provisioning: cfg.Provisioning,
 	})
+	mux.Handle("/mcp", mcpHandler)
 
 	// Wrap with API key auth middleware
 	handler := APIKeyAuth(cfg.APIKey, mux)
