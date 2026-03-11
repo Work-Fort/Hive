@@ -82,5 +82,7 @@ type Store interface {
 	DocumentStore
 	TaskStore
 	PermissionStore
+	// Ping verifies that the underlying storage is reachable.
+	Ping(ctx context.Context) error
 	io.Closer
 }

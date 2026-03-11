@@ -2,6 +2,7 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -41,6 +42,11 @@ func Open(dsn string) (*Store, error) {
 	}
 
 	return &Store{db: db}, nil
+}
+
+// Ping verifies that the SQLite connection is alive.
+func (s *Store) Ping(ctx context.Context) error {
+	return s.db.PingContext(ctx)
 }
 
 // Close closes the database connection.
