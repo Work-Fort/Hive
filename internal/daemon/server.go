@@ -78,9 +78,11 @@ func NewServer(cfg ServerConfig) *http.Server {
 	mux.HandleFunc("PUT /v1/agents/{id}/permissions", rest.SetAgentPermissions)
 
 	// MCP server
+	authz := NewAuthzService(cfg.Store)
 	mcpHandler := NewMCPHandler(MCPDeps{
 		Store:        cfg.Store,
 		Provisioning: cfg.Provisioning,
+		Authz:        authz,
 	})
 	mux.Handle("/mcp", mcpHandler)
 

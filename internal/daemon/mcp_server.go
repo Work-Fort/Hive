@@ -16,6 +16,7 @@ import (
 type MCPDeps struct {
 	Store        domain.Store
 	Provisioning *ProvisioningService
+	Authz        *AuthzService
 }
 
 // permissionMap defines which permissions each tool requires (AND logic).
