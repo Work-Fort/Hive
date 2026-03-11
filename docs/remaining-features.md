@@ -20,7 +20,7 @@ implementing all ports with goose migrations. Tables: teams, roles, agents,
 agent_roles, documents, tasks, permissions, agent_permissions. Recursive CTE
 for role chain queries verified with EXPLAIN QUERY PLAN (indexed lookups).
 
-## 3. REST API
+## ~~3. REST API~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/003-rest-api.md)
 
