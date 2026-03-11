@@ -16,6 +16,9 @@ var (
 	// ErrUnauthorized is returned when the server responds with 401.
 	ErrUnauthorized = errors.New("unauthorized")
 
+	// ErrForbidden is returned when the server responds with 403.
+	ErrForbidden = errors.New("forbidden")
+
 	// ErrNotFound is returned when the server responds with 404.
 	ErrNotFound = errors.New("not found")
 
@@ -61,6 +64,8 @@ func decodeAPIError(resp *http.Response) *APIError {
 		ae.sentinel = ErrBadRequest
 	case http.StatusUnauthorized:
 		ae.sentinel = ErrUnauthorized
+	case http.StatusForbidden:
+		ae.sentinel = ErrForbidden
 	case http.StatusNotFound:
 		ae.sentinel = ErrNotFound
 	case http.StatusConflict:
