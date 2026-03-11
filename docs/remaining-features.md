@@ -87,3 +87,12 @@ per test. HTTP client exercises REST API and MCP bridge.
 
 Systemd user service file. Binary at `~/.local/bin/hive`, database at
 `~/.local/state/hive/hive.db`. Health check integration for readiness.
+
+## ~~12. OpenAPI Spec Generation~~ DONE
+
+[Design](hive-design.md) · [Plan](plans/012-openapi.md)
+
+OpenAPI 3.1 spec generated at runtime by Huma v2. All REST endpoints migrate
+from raw `http.HandlerFunc` to Huma typed handlers with `doc:` tags. Spec
+served at `/openapi`, interactive docs at `/docs`. Enables automatic API
+client generation.

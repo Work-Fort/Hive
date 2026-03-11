@@ -410,6 +410,56 @@ hive/
   domain logic, infrastructure adapters, daemon, and config.
 - `cmd/` — CLI wiring only, delegates to `internal/`.
 
+## OpenAPI
+
+The REST API is documented with an OpenAPI 3.1 spec generated at runtime by
+[Huma v2](https://huma.rocks/) (`github.com/danielgtaylor/huma/v2`). This
+follows the same pattern used in Nexus.
+
+### Library Choice
+
+Huma v2 with the `humago` adapter for Go's stdlib `net/http`. Huma generates
+the OpenAPI spec from typed Go structs at startup — no code generation step,
+no YAML files to maintain. Input structs use `doc:` tags for field descriptions,
+`path:`/`query:` tags for parameter binding.
+
+### Endpoints
+
+- `GET /openapi` — OpenAPI 3.1 JSON spec (served by Huma automatically)
+- `GET /docs` — Interactive Swagger UI documentation (served by Huma)
+
+Both endpoints are unauthenticated — they sit outside the API key middleware.
+
+### Handler Pattern
+
+All REST handlers migrate from `func(w http.ResponseWriter, r *http.Request)`
+to Huma's typed handler pattern:
+
+```go
+huma.Register(api, huma.Operation{
+    OperationID: "create-team",
+    Method:      http.MethodPost,
+    Path:        "/v1/teams",
+    Summary:     "Create a team",
+    Tags:        []string{"Teams"},
+}, func(ctx context.Context, input *CreateTeamInput) (*TeamOutput, error) {
+    // ...
+})
+```
+
+### Exceptions
+
+Two route groups stay as raw `HandleFunc` registrations on the mux:
+
+- **Health** (`GET /v1/health`) — returns conditional status codes
+  (200/218/503) from a single handler, which Huma operations don't support.
+- **MCP** (`/mcp`) — JSON-RPC 2.0, not REST. Handled by mcp-go.
+
+### Error Mapping
+
+Domain errors map to Huma errors via `huma.NewError()`, replacing the manual
+`writeError` helper. Same status code mapping as before (404, 409, 422, 500).
+
 ## Deployment
 
 Systemd user service:
