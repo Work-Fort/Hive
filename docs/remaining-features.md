@@ -3,7 +3,7 @@
 Tracking document for features needed before Hive is production-ready as the
 agent provisioning service for WorkFort teams.
 
-## 1. Project Skeleton
+## ~~1. Project Skeleton~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/001-project-skeleton.md)
 
@@ -11,13 +11,14 @@ Go module, Cobra CLI, Viper config, XDG paths, logging, mise tasks. Daemon
 binds to `--bind`/`--port` and serves an empty `/v1/health` endpoint. MCP bridge
 connects to daemon with `--agent-id`/`--host`/`--port`. Builds a single binary.
 
-## 2. Domain Model + SQLite Store
+## ~~2. Domain Model + SQLite Store~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/002-domain-sqlite.md)
 
 Domain types and port interfaces in `internal/domain/`. SQLite store
 implementing all ports with goose migrations. Tables: teams, roles, agents,
-agent_roles, documents, tasks, permissions, agent_permissions.
+agent_roles, documents, tasks, permissions, agent_permissions. Recursive CTE
+for role chain queries verified with EXPLAIN QUERY PLAN (indexed lookups).
 
 ## 3. REST API
 
