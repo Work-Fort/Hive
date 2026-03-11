@@ -86,8 +86,19 @@ func run(bind string, port int, db, apiKey string) error {
 	maxRoleDepth := viper.GetInt("max-role-depth")
 	provisioning := hiveDaemon.NewProvisioningService(store, health, maxRoleDepth)
 
-	// Boot-time checks
-	provisioning.AuditRoleDepths(context.Background())
+	// Boot-time check: role depth audit
+	health.RegisterBootCheck("role_depth_audit", func(ctx context.Context) hiveDaemon.CheckResult {
+		provisioning.AuditRoleDepths(ctx)
+		return hiveDaemon.CheckResult{Severity: hiveDaemon.SeverityOK, Message: "role depth audit complete"}
+	})
+
+	// Periodic check: database connectivity
+	health.RegisterPeriodicCheck("database", func(ctx context.Context) hiveDaemon.CheckResult {
+		if err := store.Ping(ctx); err != nil {
+			return hiveDaemon.CheckResult{Severity: hiveDaemon.SeverityError, Message: err.Error()}
+		}
+		return hiveDaemon.CheckResult{Severity: hiveDaemon.SeverityOK}
+	})
 
 	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
 		Bind:         bind,
@@ -107,6 +118,11 @@ func run(bind string, port int, db, apiKey string) error {
 			errCh <- err
 		}
 	}()
+
+	// Start periodic health checks
+	healthCtx, healthCancel := context.WithCancel(context.Background())
+	defer healthCancel()
+	go health.StartPeriodic(healthCtx, 30*time.Second)
 
 	select {
 	case sig := <-sigCh:
