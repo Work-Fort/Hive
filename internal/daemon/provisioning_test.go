@@ -483,12 +483,19 @@ func TestAuditRoleDepths_WarnsOnDeepChain(t *testing.T) {
 
 	ps.AuditRoleDepths(ctx)
 
-	report := health.Status()
-	if report.Status != daemon.StatusDegraded {
+	report := health.Report()
+	if report.Status != string(daemon.StatusDegraded) {
 		t.Errorf("got status %q, want %q", report.Status, daemon.StatusDegraded)
 	}
-	if len(report.Warnings) == 0 {
-		t.Error("expected warnings, got none")
+	hasWarning := false
+	for _, c := range report.Checks {
+		if c.Severity == daemon.SeverityWarning {
+			hasWarning = true
+			break
+		}
+	}
+	if !hasWarning {
+		t.Error("expected warning checks, got none")
 	}
 }
 
@@ -502,11 +509,13 @@ func TestAuditRoleDepths_NoWarningsWhenAllValid(t *testing.T) {
 
 	ps.AuditRoleDepths(ctx)
 
-	report := health.Status()
-	if report.Status != daemon.StatusHealthy {
+	report := health.Report()
+	if report.Status != string(daemon.StatusHealthy) {
 		t.Errorf("got status %q, want %q", report.Status, daemon.StatusHealthy)
 	}
-	if len(report.Warnings) != 0 {
-		t.Errorf("got %d warnings, want 0: %v", len(report.Warnings), report.Warnings)
+	for _, c := range report.Checks {
+		if c.Severity == daemon.SeverityWarning {
+			t.Errorf("unexpected warning check: %s", c.Message)
+		}
 	}
 }
