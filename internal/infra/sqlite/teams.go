@@ -74,22 +74,34 @@ func (s *Store) UpdateTeam(ctx context.Context, id, name string) error {
 }
 
 func (s *Store) DeleteTeam(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
 	// Check for dependent agents
 	var count int
-	s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM agents WHERE team_id = ?", id).Scan(&count)
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM agents WHERE team_id = ?", id,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count agents for team: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("%w: team has %d agents", domain.ErrHasDependencies, count)
 	}
 
 	// Check for dependent tasks
-	s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM tasks WHERE team_id = ?", id).Scan(&count)
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM tasks WHERE team_id = ?", id,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count tasks for team: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("%w: team has %d tasks", domain.ErrHasDependencies, count)
 	}
 
-	res, err := s.db.ExecContext(ctx, "DELETE FROM teams WHERE id = ?", id)
+	res, err := tx.ExecContext(ctx, "DELETE FROM teams WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("delete team: %w", err)
 	}
@@ -97,5 +109,5 @@ func (s *Store) DeleteTeam(ctx context.Context, id string) error {
 	if n == 0 {
 		return fmt.Errorf("%w: team %q", domain.ErrNotFound, id)
 	}
-	return nil
+	return tx.Commit()
 }

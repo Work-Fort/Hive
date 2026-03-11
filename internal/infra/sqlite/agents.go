@@ -83,16 +83,25 @@ func (s *Store) UpdateAgent(ctx context.Context, id, name, teamID string) error 
 }
 
 func (s *Store) DeleteAgent(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
 	// Check for assigned tasks
 	var count int
-	s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM tasks WHERE agent_id = ?", id).Scan(&count)
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM tasks WHERE agent_id = ?", id,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count tasks for agent: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("%w: agent has %d tasks", domain.ErrHasDependencies, count)
 	}
 
 	// agent_roles and agent_permissions cascade on delete
-	res, err := s.db.ExecContext(ctx, "DELETE FROM agents WHERE id = ?", id)
+	res, err := tx.ExecContext(ctx, "DELETE FROM agents WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("delete agent: %w", err)
 	}
@@ -100,7 +109,7 @@ func (s *Store) DeleteAgent(ctx context.Context, id string) error {
 	if n == 0 {
 		return fmt.Errorf("%w: agent %q", domain.ErrNotFound, id)
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) SetAgentRoles(ctx context.Context, agentID string, roles []domain.AgentRole) error {

@@ -66,6 +66,10 @@ CREATE TABLE agent_permissions (
     PRIMARY KEY (agent_id, permission_id, scope_team_id)
 );
 
+CREATE UNIQUE INDEX uq_agent_perm_global
+    ON agent_permissions(agent_id, permission_id)
+    WHERE scope_team_id IS NULL;
+
 -- +goose Down
 
 DROP TABLE agent_permissions;

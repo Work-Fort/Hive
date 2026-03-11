@@ -9,15 +9,21 @@ import (
 )
 
 func (s *Store) SeedPermissions(ctx context.Context, names []string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
 	for _, name := range names {
-		_, err := s.db.ExecContext(ctx,
+		_, err := tx.ExecContext(ctx,
 			"INSERT OR IGNORE INTO permissions (id, name) VALUES (?, ?)",
 			"perm_"+name, name)
 		if err != nil {
 			return fmt.Errorf("seed permission %q: %w", name, err)
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) GetAgentPermissions(ctx context.Context, agentID string) ([]domain.AgentPermission, error) {

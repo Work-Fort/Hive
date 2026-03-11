@@ -101,22 +101,34 @@ func (s *Store) UpdateRole(ctx context.Context, id, name, parentID string) error
 }
 
 func (s *Store) DeleteRole(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
 	// Check for child roles
 	var count int
-	s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM roles WHERE parent_id = ?", id).Scan(&count)
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM roles WHERE parent_id = ?", id,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count child roles: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("%w: role has %d child roles", domain.ErrHasDependencies, count)
 	}
 
 	// Check for agent assignments
-	s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM agent_roles WHERE role_id = ?", id).Scan(&count)
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM agent_roles WHERE role_id = ?", id,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count agent assignments for role: %w", err)
+	}
 	if count > 0 {
 		return fmt.Errorf("%w: role assigned to %d agents", domain.ErrHasDependencies, count)
 	}
 
-	res, err := s.db.ExecContext(ctx, "DELETE FROM roles WHERE id = ?", id)
+	res, err := tx.ExecContext(ctx, "DELETE FROM roles WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("delete role: %w", err)
 	}
@@ -124,7 +136,7 @@ func (s *Store) DeleteRole(ctx context.Context, id string) error {
 	if n == 0 {
 		return fmt.Errorf("%w: role %q", domain.ErrNotFound, id)
 	}
-	return nil
+	return tx.Commit()
 }
 
 // GetRoleChain returns the inheritance chain from the given role to the root,
