@@ -73,7 +73,7 @@ Go HTTP client at `client/` with zero internal imports. Own response types
 mirroring API JSON shapes. Methods for all REST endpoints. Sentinel errors
 for common HTTP status codes.
 
-## 10. E2E Test Suite
+## ~~10. E2E Test Suite~~ DONE
 
 [Design](hive-design.md) · [Plan](plans/010-e2e-tests.md)
 
