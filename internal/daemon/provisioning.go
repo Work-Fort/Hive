@@ -20,6 +20,9 @@ type ProvisioningService struct {
 
 // NewProvisioningService creates a new ProvisioningService.
 func NewProvisioningService(store domain.Store, health *HealthService, maxRoleDepth int) *ProvisioningService {
+	if maxRoleDepth <= 0 {
+		maxRoleDepth = 10 // fallback to default
+	}
 	return &ProvisioningService{
 		store:        store,
 		health:       health,
