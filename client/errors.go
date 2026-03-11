@@ -51,14 +51,24 @@ func (e *APIError) Unwrap() error { return e.sentinel }
 
 // decodeAPIError reads the response body and returns an *APIError. It maps
 // known status codes to sentinel errors via Unwrap.
+//
+// It handles two error response formats:
+//   - Legacy:  {"error": "message"}
+//   - Huma/RFC 9457: {"status": 404, "title": "Not Found", "detail": "message"}
 func decodeAPIError(resp *http.Response) *APIError {
 	var body struct {
-		Error string `json:"error"`
+		Error  string `json:"error"`  // legacy format
+		Detail string `json:"detail"` // Huma / RFC 9457 format
 	}
 	// Best-effort decode; ignore errors (body may be empty or non-JSON).
 	json.NewDecoder(resp.Body).Decode(&body) //nolint:errcheck
 
-	ae := &APIError{StatusCode: resp.StatusCode, Message: body.Error}
+	msg := body.Error
+	if msg == "" {
+		msg = body.Detail
+	}
+
+	ae := &APIError{StatusCode: resp.StatusCode, Message: msg}
 	switch resp.StatusCode {
 	case http.StatusBadRequest:
 		ae.sentinel = ErrBadRequest
