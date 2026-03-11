@@ -269,3 +269,24 @@ type permissionResponse struct {
 	PermissionID string `json:"PermissionID" doc:"Permission name"`
 	ScopeTeamID  string `json:"ScopeTeamID" doc:"Team scope (empty = global)"`
 }
+
+// -- Permission Entities --
+
+type listPermissionsOutput struct {
+	Body []permissionEntityResponse `json:"body"`
+}
+
+type permissionEntityResponse struct {
+	ID   string `json:"ID" doc:"Permission ID"`
+	Name string `json:"Name" doc:"Permission name"`
+}
+
+type createPermissionInput struct {
+	Body struct {
+		Name string `json:"name" doc:"Permission name" minLength:"1"`
+	}
+}
+
+type createPermissionOutput struct {
+	Body permissionEntityResponse `json:"body"`
+}

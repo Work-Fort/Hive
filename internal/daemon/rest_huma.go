@@ -657,6 +657,46 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 	})
 }
 
+// --- permission entity routes ---
+
+func registerPermissionListRoutes(api huma.API, store domain.Store) {
+	huma.Register(api, huma.Operation{
+		OperationID: "list-permissions",
+		Method:      http.MethodGet,
+		Path:        "/v1/permissions",
+		Summary:     "List all permissions",
+		Tags:        []string{"Permissions"},
+	}, func(ctx context.Context, input *struct{}) (*listPermissionsOutput, error) {
+		perms, err := store.ListPermissions(ctx)
+		if err != nil {
+			return nil, mapDomainErr(err)
+		}
+		out := &listPermissionsOutput{}
+		for _, p := range perms {
+			out.Body = append(out.Body, permissionEntityResponse{ID: p.ID, Name: p.Name})
+		}
+		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "create-permission",
+		Method:        http.MethodPost,
+		Path:          "/v1/permissions",
+		Summary:       "Create a permission",
+		DefaultStatus: 201,
+		Tags:          []string{"Permissions"},
+	}, func(ctx context.Context, input *createPermissionInput) (*createPermissionOutput, error) {
+		if err := store.SeedPermissions(ctx, []string{input.Body.Name}); err != nil {
+			return nil, mapDomainErr(err)
+		}
+		p, err := store.LookupPermissionByName(ctx, input.Body.Name)
+		if err != nil {
+			return nil, mapDomainErr(err)
+		}
+		return &createPermissionOutput{Body: permissionEntityResponse{ID: p.ID, Name: p.Name}}, nil
+	})
+}
+
 // --- permission routes ---
 
 func registerPermissionRoutes(api huma.API, store domain.Store) {
