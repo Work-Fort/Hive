@@ -20,3 +20,26 @@ run = "rm -rf build/"
 [tasks.e2e]
 description = "Run e2e test suite (builds binary with -race first)"
 run = "cd tests/e2e && go test -race -count=1 -timeout 120s ./..."
+
+[tasks.install]
+description = "Install hive binary and systemd user service"
+run = """
+set -euo pipefail
+install -Dm755 build/hive "$HOME/.local/bin/hive"
+install -Dm644 deploy/hive.service "$HOME/.config/systemd/user/hive.service"
+systemctl --user daemon-reload
+echo "Installed. Enable with: systemctl --user enable --now hive"
+echo "Set API key: echo 'HIVE_API_KEY=<key>' > ~/.config/hive/env && chmod 600 ~/.config/hive/env"
+"""
+
+[tasks.uninstall]
+description = "Stop, disable, and remove hive binary and service"
+run = """
+set -euo pipefail
+systemctl --user stop hive 2>/dev/null || true
+systemctl --user disable hive 2>/dev/null || true
+rm -f "$HOME/.local/bin/hive"
+rm -f "$HOME/.config/systemd/user/hive.service"
+systemctl --user daemon-reload
+echo "Uninstalled."
+"""
