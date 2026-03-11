@@ -303,10 +303,10 @@ func topoSortRoles(roles []RoleFile) []RoleFile {
 	return sorted
 }
 
-func newID() string {
-	b := make([]byte, 16)
+func newID(prefix string) string {
+	b := make([]byte, 8)
 	_, _ = rand.Read(b)
-	return fmt.Sprintf("%x", b)
+	return fmt.Sprintf("%s_%x", prefix, b)
 }
 
 func importTeam(ctx context.Context, ds DataSource, tf TeamFile, opts ImportOptions) (string, bool, error) {
@@ -325,7 +325,7 @@ func importTeam(ctx context.Context, ds DataSource, tf TeamFile, opts ImportOpti
 	if !errors.Is(err, domain.ErrNotFound) {
 		return "", false, err
 	}
-	id := newID()
+	id := newID("tm")
 	if !opts.DryRun {
 		t := &domain.Team{ID: id, Name: tf.Name, CreatedAt: tf.CreatedAt, UpdatedAt: tf.UpdatedAt}
 		if err := ds.CreateTeam(ctx, t); err != nil {
@@ -351,7 +351,7 @@ func importRole(ctx context.Context, ds DataSource, rf RoleFile, parentID string
 	if !errors.Is(err, domain.ErrNotFound) {
 		return "", false, err
 	}
-	id := newID()
+	id := newID("rl")
 	if !opts.DryRun {
 		r := &domain.Role{ID: id, Name: rf.Name, ParentID: parentID, CreatedAt: rf.CreatedAt, UpdatedAt: rf.UpdatedAt}
 		if err := ds.CreateRole(ctx, r); err != nil {
@@ -374,7 +374,7 @@ func importAgent(ctx context.Context, ds DataSource, af AgentFile, teamID string
 	var id string
 	updated := false
 	if isNew {
-		id = newID()
+		id = newID("ag")
 		if !opts.DryRun {
 			a := &domain.Agent{ID: id, Name: af.Name, TeamID: teamID, CreatedAt: af.CreatedAt, UpdatedAt: af.UpdatedAt}
 			if err := ds.CreateAgent(ctx, a); err != nil {
@@ -460,7 +460,7 @@ func importDocument(ctx context.Context, ds DataSource, doc parsedDocument, owne
 	}
 	if !opts.DryRun {
 		d := &domain.Document{
-			ID: newID(), Kind: domain.DocumentKind(doc.FM.Kind),
+			ID: newID("doc"), Kind: domain.DocumentKind(doc.FM.Kind),
 			Title: doc.FM.Title, Content: doc.Body,
 			CreatedAt: doc.FM.CreatedAt, UpdatedAt: doc.FM.UpdatedAt,
 		}
@@ -498,7 +498,7 @@ func importTask(ctx context.Context, ds DataSource, tf TaskFile, teamID, agentID
 	}
 	if !opts.DryRun {
 		t := &domain.Task{
-			ID: newID(), TeamID: teamID, AgentID: agentID,
+			ID: newID("tk"), TeamID: teamID, AgentID: agentID,
 			Title: tf.Title, Description: tf.Description,
 			Status: domain.TaskStatus(tf.Status),
 			CreatedAt: tf.CreatedAt, UpdatedAt: tf.UpdatedAt,

@@ -12,6 +12,8 @@ func TestSanitizeName(t *testing.T) {
 		{"a--b", "a--b"},
 		{"  spaces  ", "spaces"},
 		{"café", "caf"},
+		{"!!!", "_unnamed"},
+		{"", "_unnamed"},
 	}
 	for _, tt := range tests {
 		got := SanitizeName(tt.in)

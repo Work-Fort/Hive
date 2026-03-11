@@ -675,11 +675,11 @@ func registerPermissionEntityRoutes(api huma.API, store domain.Store) {
 		if err != nil {
 			return nil, mapDomainErr(err)
 		}
-		out := &ListPermissionsOutput{}
-		for _, p := range perms {
-			out.Body = append(out.Body, permEntityToResponse(p))
+		resp := make([]permissionEntityResponse, len(perms))
+		for i, p := range perms {
+			resp[i] = permEntityToResponse(p)
 		}
-		return out, nil
+		return &ListPermissionsOutput{Body: resp}, nil
 	})
 
 	huma.Register(api, huma.Operation{

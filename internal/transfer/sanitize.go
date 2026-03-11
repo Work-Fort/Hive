@@ -17,5 +17,8 @@ func SanitizeName(name string) string {
 	s = nonAlphanumHyphen.ReplaceAllString(s, "")
 	s = multiHyphen.ReplaceAllString(s, "--")
 	s = strings.Trim(s, "-")
+	if s == "" {
+		return "_unnamed"
+	}
 	return s
 }
