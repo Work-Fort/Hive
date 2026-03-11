@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#MISE description="Install hive binary and systemd user service"
+#MISE depends=["build"]
+set -euo pipefail
+
+install -Dm755 build/hive "$HOME/.local/bin/hive"
+install -Dm644 deploy/hive.service "$HOME/.config/systemd/user/hive.service"
+systemctl --user daemon-reload
+echo "Installed hive to ~/.local/bin and systemd user service"
+echo "Enable with: systemctl --user enable --now hive"
+echo "Set API key: echo 'HIVE_API_KEY=<key>' > ~/.config/hive/env && chmod 600 ~/.config/hive/env"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#MISE description="Stop, disable, and remove hive binary and service"
+set -euo pipefail
+
+systemctl --user stop hive 2>/dev/null || true
+systemctl --user disable hive 2>/dev/null || true
+rm -f "$HOME/.local/bin/hive"
+rm -f "$HOME/.config/systemd/user/hive.service"
+systemctl --user daemon-reload
+echo "Uninstalled."
