@@ -13,6 +13,7 @@ type TeamStore interface {
 	ListTeams(ctx context.Context) ([]*Team, error)
 	UpdateTeam(ctx context.Context, id, name string) error
 	DeleteTeam(ctx context.Context, id string) error
+	LookupTeamByName(ctx context.Context, name string) (*Team, error)
 }
 
 // RoleStore persists role metadata and handles inheritance queries.
@@ -27,6 +28,7 @@ type RoleStore interface {
 	// to the root, up to maxDepth levels. The result is ordered
 	// leaf-to-root (index 0 = the given role).
 	GetRoleChain(ctx context.Context, roleID string, maxDepth int) ([]*Role, error)
+	LookupRoleByName(ctx context.Context, name string) (*Role, error)
 }
 
 // AgentStore persists agent metadata and role assignments.
@@ -39,6 +41,7 @@ type AgentStore interface {
 
 	SetAgentRoles(ctx context.Context, agentID string, roles []AgentRole) error
 	GetAgentRoles(ctx context.Context, agentID string) ([]AgentRole, error)
+	LookupAgentByName(ctx context.Context, name string) (*Agent, error)
 }
 
 // DocumentStore persists markdown documents for roles and agents.
@@ -50,6 +53,7 @@ type DocumentStore interface {
 
 	ListRoleDocuments(ctx context.Context, roleID string) ([]*Document, error)
 	ListAgentMemory(ctx context.Context, agentID string) ([]*Document, error)
+	LookupDocumentByOwnerAndTitle(ctx context.Context, ownerID, title string) (*Document, error)
 }
 
 // TaskStore persists tasks scoped to teams.
@@ -59,6 +63,7 @@ type TaskStore interface {
 	ListTeamTasks(ctx context.Context, teamID string) ([]*Task, error)
 	UpdateTask(ctx context.Context, id string, t *Task) error
 	DeleteTask(ctx context.Context, id string) error
+	LookupTaskByTeamAndTitle(ctx context.Context, teamID, title string) (*Task, error)
 }
 
 // PermissionStore manages RBAC permissions.
@@ -72,6 +77,9 @@ type PermissionStore interface {
 	// HasPermission checks if an agent has a specific permission,
 	// either globally or scoped to the given team.
 	HasPermission(ctx context.Context, agentID, permName, scopeTeamID string) (bool, error)
+
+	ListPermissions(ctx context.Context) ([]*Permission, error)
+	LookupPermissionByName(ctx context.Context, name string) (*Permission, error)
 }
 
 // Store combines all storage interfaces.
