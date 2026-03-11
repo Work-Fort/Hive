@@ -81,7 +81,7 @@ Separate Go module in `tests/e2e/` following Nexus/Sharkfin pattern. TestMain
 builds binary with `-race`, harness manages daemon lifecycle, temp XDG dirs
 per test. HTTP client exercises REST API and MCP bridge.
 
-## 11. Systemd Service
+## ~~11. Systemd Service~~ DONE
 
 [Plan](plans/011-systemd.md)
 
