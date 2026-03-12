@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Work-Fort/Hive/internal/domain"
+	"github.com/Work-Fort/Hive/internal/validate"
 	"gopkg.in/yaml.v3"
 )
 
@@ -58,6 +59,43 @@ func Import(ctx context.Context, ds DataSource, dir string, opts ImportOptions) 
 	tasks, err := parseDir[TaskFile](filepath.Join(dir, "tasks"), ".yaml")
 	if err != nil {
 		return nil, fmt.Errorf("parse tasks: %w", err)
+	}
+
+	// Validate all parsed entities
+	for _, tf := range teams {
+		if err := validate.ValidateTeam(map[string]any{"name": tf.Name}); err != nil {
+			return nil, fmt.Errorf("validate team %q: %w", tf.Name, err)
+		}
+	}
+	for _, rf := range roles {
+		if err := validate.ValidateRole(map[string]any{"name": rf.Name}); err != nil {
+			return nil, fmt.Errorf("validate role %q: %w", rf.Name, err)
+		}
+	}
+	for _, pf := range permissions {
+		if err := validate.ValidatePermission(map[string]any{"name": pf.Name}); err != nil {
+			return nil, fmt.Errorf("validate permission %q: %w", pf.Name, err)
+		}
+	}
+	for _, af := range agents {
+		if err := validate.ValidateAgent(map[string]any{"name": af.Name, "team": af.Team}); err != nil {
+			return nil, fmt.Errorf("validate agent %q: %w", af.Name, err)
+		}
+	}
+	for _, doc := range documents {
+		if err := validate.ValidateDocument(map[string]any{"title": doc.FM.Title, "kind": doc.FM.Kind}); err != nil {
+			return nil, fmt.Errorf("validate document %q: %w", doc.FM.Title, err)
+		}
+		if err := validate.Markdown(doc.Body); err != nil {
+			return nil, fmt.Errorf("validate document %q content: %w", doc.FM.Title, err)
+		}
+	}
+	for _, tf := range tasks {
+		if err := validate.ValidateTask(map[string]any{
+			"title": tf.Title, "team": tf.Team, "status": tf.Status,
+		}); err != nil {
+			return nil, fmt.Errorf("validate task %q: %w", tf.Title, err)
+		}
 	}
 
 	var result ImportResult

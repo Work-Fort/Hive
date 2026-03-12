@@ -2,6 +2,9 @@ package transfer_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Work-Fort/Hive/internal/infra/sqlite"
@@ -133,5 +136,58 @@ func TestImportDryRun(t *testing.T) {
 	teams, _ := dstDS.ListTeams(context.Background())
 	if len(teams) != 0 {
 		t.Errorf("expected 0 teams in store after dry run, got %d", len(teams))
+	}
+}
+
+func TestImportValidationFailure(t *testing.T) {
+	srcStore, err := sqlite.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srcStore.Close()
+	seedTestData(t, srcStore)
+
+	dir := t.TempDir()
+	srcDS := transfer.NewDBDataSource(srcStore)
+	if _, err := transfer.Export(context.Background(), srcDS, dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Tamper with the exported task file: change status to an invalid value
+	tasksDir := filepath.Join(dir, "tasks")
+	entries, err := os.ReadDir(tasksDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("no task files found")
+	}
+	taskFile := filepath.Join(tasksDir, entries[0].Name())
+	data, err := os.ReadFile(taskFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := strings.Replace(string(data), "status: pending", "status: bogus", 1)
+	if tampered == string(data) {
+		t.Fatal("failed to tamper with task file — status: pending not found")
+	}
+	if err := os.WriteFile(taskFile, []byte(tampered), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Import into a fresh store — should fail with validation error
+	dstStore, err := sqlite.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dstStore.Close()
+
+	dstDS := transfer.NewDBDataSource(dstStore)
+	_, err = transfer.Import(context.Background(), dstDS, dir, transfer.ImportOptions{})
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !strings.Contains(err.Error(), "status") {
+		t.Errorf("error should mention 'status': %v", err)
 	}
 }
