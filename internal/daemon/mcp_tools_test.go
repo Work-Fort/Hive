@@ -4,6 +4,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -542,5 +543,57 @@ func TestToolFilterMissingAgentID(t *testing.T) {
 
 	if filtered != nil {
 		t.Errorf("got %d filtered tools, want nil; got: %v", len(filtered), filtered)
+	}
+}
+
+func TestUpdateTask_InvalidStatus_MCP(t *testing.T) {
+	env := setupTestEnv(t)
+
+	// Create a task first
+	createHandler := makeCreateTask(env.deps)
+	result := callTool(t, createHandler, env.ctx, map[string]any{
+		"title": "Test Task",
+	})
+	if result.IsError {
+		t.Fatalf("create task: %s", resultText(t, result))
+	}
+	var created struct{ ID string `json:"id"` }
+	unmarshalResult(t, result, &created)
+
+	// Try to update with invalid status
+	updateHandler := makeUpdateTask(env.deps)
+	result = callTool(t, updateHandler, env.ctx, map[string]any{
+		"id":     created.ID,
+		"status": "bogus",
+	})
+	if !result.IsError {
+		t.Fatal("expected error for invalid status")
+	}
+	text := resultText(t, result)
+	if !strings.Contains(text, "status") {
+		t.Errorf("error should mention status: %s", text)
+	}
+}
+
+func TestUpdateTask_ValidStatus_MCP(t *testing.T) {
+	env := setupTestEnv(t)
+
+	createHandler := makeCreateTask(env.deps)
+	result := callTool(t, createHandler, env.ctx, map[string]any{
+		"title": "Test Task",
+	})
+	if result.IsError {
+		t.Fatalf("create task: %s", resultText(t, result))
+	}
+	var created struct{ ID string `json:"id"` }
+	unmarshalResult(t, result, &created)
+
+	updateHandler := makeUpdateTask(env.deps)
+	result = callTool(t, updateHandler, env.ctx, map[string]any{
+		"id":     created.ID,
+		"status": "in_progress",
+	})
+	if result.IsError {
+		t.Fatalf("expected success, got: %s", resultText(t, result))
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/Work-Fort/Hive/internal/domain"
+	"github.com/Work-Fort/Hive/internal/validate"
 )
 
 // requireAgent resolves the agent from context, returning an MCP error result
@@ -148,6 +149,9 @@ func makeCreateMemory(deps MCPDeps) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("missing required parameter: content"), nil
 		}
+		if err := validate.Markdown(content); err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid content: %v", err)), nil
+		}
 		doc := &domain.Document{
 			ID:      NewID("doc"),
 			Kind:    domain.DocumentKindMemory,
@@ -187,6 +191,9 @@ func makeUpdateMemory(deps MCPDeps) server.ToolHandlerFunc {
 		}
 		title := request.GetString("title", existing.Title)
 		content := request.GetString("content", existing.Content)
+		if err := validate.Markdown(content); err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid content: %v", err)), nil
+		}
 		if err := deps.Store.UpdateDocument(ctx, id, title, content); err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("update memory failed: %v", err)), nil
 		}
@@ -368,7 +375,7 @@ func makeUpdateTask(deps MCPDeps) server.ToolHandlerFunc {
 			case domain.TaskStatusPending, domain.TaskStatusInProgress, domain.TaskStatusCompleted:
 				updated.Status = domain.TaskStatus(statusStr)
 			default:
-				return mcp.NewToolResultError(fmt.Sprintf("invalid status: %q", statusStr)), nil
+				return mcp.NewToolResultError(fmt.Sprintf("invalid status: must be one of: pending, in_progress, completed")), nil
 			}
 		}
 		if err := deps.Store.UpdateTask(ctx, id, updated); err != nil {
