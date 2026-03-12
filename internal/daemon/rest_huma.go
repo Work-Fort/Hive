@@ -90,15 +90,6 @@ func permEntityToResponse(p *domain.Permission) permissionEntityResponse {
 	return permissionEntityResponse{ID: p.ID, Name: p.Name}
 }
 
-// validTaskStatus checks whether the given string is a valid task status.
-func validTaskStatus(s string) bool {
-	switch domain.TaskStatus(s) {
-	case domain.TaskStatusPending, domain.TaskStatusInProgress, domain.TaskStatusCompleted:
-		return true
-	}
-	return false
-}
-
 // --- team routes ---
 
 func registerTeamRoutes(api huma.API, store domain.Store) {
@@ -579,9 +570,6 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 		if status == "" {
 			status = domain.TaskStatusPending
 		}
-		if input.Body.Status != "" && !validTaskStatus(input.Body.Status) {
-			return nil, huma.NewError(http.StatusBadRequest, "invalid status; must be pending, in_progress, or completed")
-		}
 
 		task := &domain.Task{
 			ID: NewID("tk"), TeamID: input.Body.TeamID, AgentID: input.Body.AgentID,
@@ -629,9 +617,6 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 			existing.Description = input.Body.Description
 		}
 		if input.Body.Status != "" {
-			if !validTaskStatus(input.Body.Status) {
-				return nil, huma.NewError(http.StatusBadRequest, "invalid status; must be pending, in_progress, or completed")
-			}
 			existing.Status = domain.TaskStatus(input.Body.Status)
 		}
 		existing.AgentID = input.Body.AgentID

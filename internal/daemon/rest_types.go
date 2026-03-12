@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package daemon
 
-import "time"
+import (
+	"time"
+
+	"github.com/danielgtaylor/huma/v2"
+
+	"github.com/Work-Fort/Hive/internal/validate"
+)
 
 // --- shared input ---
 
@@ -104,6 +110,51 @@ type UpdateDocumentInput struct {
 		Title   string `json:"title" doc:"Document title" minLength:"1"`
 		Content string `json:"content" doc:"Markdown content"`
 	}
+}
+
+// Resolve validates markdown content before the handler runs.
+func (i *CreateRoleDocumentInput) Resolve(ctx huma.Context, prefix *huma.PathBuffer) []error {
+	if i.Body.Content == "" {
+		return nil
+	}
+	if err := validate.Markdown(i.Body.Content); err != nil {
+		return []error{&huma.ErrorDetail{
+			Location: prefix.With("body.content"),
+			Message:  err.Error(),
+			Value:    i.Body.Content,
+		}}
+	}
+	return nil
+}
+
+// Resolve validates markdown content before the handler runs.
+func (i *CreateAgentMemoryInput) Resolve(ctx huma.Context, prefix *huma.PathBuffer) []error {
+	if i.Body.Content == "" {
+		return nil
+	}
+	if err := validate.Markdown(i.Body.Content); err != nil {
+		return []error{&huma.ErrorDetail{
+			Location: prefix.With("body.content"),
+			Message:  err.Error(),
+			Value:    i.Body.Content,
+		}}
+	}
+	return nil
+}
+
+// Resolve validates markdown content before the handler runs.
+func (i *UpdateDocumentInput) Resolve(ctx huma.Context, prefix *huma.PathBuffer) []error {
+	if i.Body.Content == "" {
+		return nil
+	}
+	if err := validate.Markdown(i.Body.Content); err != nil {
+		return []error{&huma.ErrorDetail{
+			Location: prefix.With("body.content"),
+			Message:  err.Error(),
+			Value:    i.Body.Content,
+		}}
+	}
+	return nil
 }
 
 type AgentMemoryPathInput struct {
@@ -213,7 +264,7 @@ type CreateTaskInput struct {
 		AgentID     string `json:"agent_id,omitempty" doc:"Assigned agent ID"`
 		Title       string `json:"title" doc:"Task title" minLength:"1"`
 		Description string `json:"description,omitempty" doc:"Task description"`
-		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed"`
+		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed" enum:"pending,in_progress,completed"`
 	}
 }
 
@@ -222,7 +273,7 @@ type UpdateTaskInput struct {
 	Body struct {
 		Title       string `json:"title,omitempty" doc:"Task title"`
 		Description string `json:"description,omitempty" doc:"Task description"`
-		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed"`
+		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed" enum:"pending,in_progress,completed"`
 		AgentID     string `json:"agent_id" doc:"Assigned agent ID (empty to unassign)"`
 	}
 }
