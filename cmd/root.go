@@ -15,6 +15,7 @@ import (
 	exportCmd "github.com/Work-Fort/Hive/cmd/export"
 	importCmd "github.com/Work-Fort/Hive/cmd/importcmd"
 	mcpBridgeCmd "github.com/Work-Fort/Hive/cmd/mcpbridge"
+	schemaCmd "github.com/Work-Fort/Hive/cmd/schema"
 	"github.com/Work-Fort/Hive/internal/config"
 )
 
@@ -103,4 +104,5 @@ func init() {
 	rootCmd.AddCommand(exportCmd.NewCmd())
 	rootCmd.AddCommand(importCmd.NewCmd())
 	rootCmd.AddCommand(mcpBridgeCmd.NewCmd())
+	rootCmd.AddCommand(schemaCmd.NewCmd())
 }
