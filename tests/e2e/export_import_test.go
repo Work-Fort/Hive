@@ -71,7 +71,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--api-key", testAPIKey,
+		"--passport-token", testPassportToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -120,7 +120,7 @@ func TestExportImportDryRun(t *testing.T) {
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--api-key", testAPIKey,
+		"--passport-token", testPassportToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -167,7 +167,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--api-key", testAPIKey,
+		"--passport-token", testPassportToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -180,7 +180,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 	importConflict := exec.Command(hiveBin, "import", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--api-key", testAPIKey,
+		"--passport-token", testPassportToken,
 		"--log-level", "disabled",
 	)
 	conflictOut, err := importConflict.CombinedOutput()
@@ -193,7 +193,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 	importUpsert := exec.Command(hiveBin, "import", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--api-key", testAPIKey,
+		"--passport-token", testPassportToken,
 		"--upsert",
 		"--log-level", "disabled",
 	)

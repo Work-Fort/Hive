@@ -80,33 +80,29 @@ func TestPermissions(t *testing.T) {
 	}
 }
 
-// TestUnauthorizedRequest verifies that requests with a wrong API key are
-// rejected with ErrForbidden (HTTP 403), and that requests with a missing
-// Authorization header are rejected with ErrUnauthorized (HTTP 401).
+// TestUnauthorizedRequest verifies that requests with an invalid token are
+// rejected with ErrUnauthorized (HTTP 401), and that requests with no
+// Authorization header are also rejected with ErrUnauthorized.
 func TestUnauthorizedRequest(t *testing.T) {
 	h := newHarness(t)
 
-	// Wrong key: server returns 403 Forbidden.
+	// Invalid token: Passport returns 401 Unauthorized.
 	badClient := client.New(
 		fmt.Sprintf("http://127.0.0.1:%d", h.port),
-		"wrong-key",
+		"invalid-token",
 	)
 	_, err := badClient.ListTeams(ctx())
-	if !errors.Is(err, client.ErrForbidden) {
-		t.Errorf("wrong API key: expected ErrForbidden, got %v", err)
+	if !errors.Is(err, client.ErrUnauthorized) {
+		t.Errorf("invalid token: expected ErrUnauthorized, got %v", err)
 	}
 
-	// No key at all: server returns 401 Unauthorized.
-	noKeyClient := client.New(
+	// No token: Passport returns 401 Unauthorized.
+	noTokenClient := client.New(
 		fmt.Sprintf("http://127.0.0.1:%d", h.port),
 		"",
 	)
-	// The no-key client sends no Authorization header, which triggers 401.
-	// We override the client's api key to empty string (already done above),
-	// but the harness daemon requires a key (testAPIKey is set), so no-auth
-	// requests should be rejected.
-	_, err = noKeyClient.ListTeams(ctx())
+	_, err = noTokenClient.ListTeams(ctx())
 	if !errors.Is(err, client.ErrUnauthorized) {
-		t.Errorf("no API key: expected ErrUnauthorized, got %v", err)
+		t.Errorf("no token: expected ErrUnauthorized, got %v", err)
 	}
 }

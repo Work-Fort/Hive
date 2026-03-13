@@ -16,8 +16,11 @@ import (
 )
 
 const (
-	// testAPIKey is the shared API key used by every harness in the test run.
-	testAPIKey = "e2e-test-key-do-not-use-in-prod"
+	// testPassportURL is the Passport instance used for E2E tests.
+	testPassportURL = "http://passport.nexus:3000"
+	// testPassportToken is a Passport-issued API key for E2E tests.
+	// Must be pre-provisioned in the Passport instance.
+	testPassportToken = "PLACEHOLDER_REPLACE_WITH_REAL_TOKEN"
 
 	// startupTimeout is how long to wait for the daemon health endpoint to
 	// respond before declaring startup a failure.
@@ -76,7 +79,7 @@ func newHarness(t *testing.T) *Harness {
 		"--bind", "127.0.0.1",
 		"--port", fmt.Sprintf("%d", port),
 		"--db", dbPath,
-		"--api-key", testAPIKey,
+		"--passport-url", testPassportURL,
 		"--log-level", "disabled",
 	)
 	// XDG env vars scope config/state to our temp dirs.
@@ -105,7 +108,7 @@ func newHarness(t *testing.T) *Harness {
 		dir:    dir,
 		cmd:    cmd,
 		port:   port,
-		Client: client.New(fmt.Sprintf("http://127.0.0.1:%d", port), testAPIKey),
+		Client: client.New(fmt.Sprintf("http://127.0.0.1:%d", port), testPassportToken),
 	}
 
 	// Wait for the health endpoint to respond.
