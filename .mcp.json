@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "hive": {
+      "command": "build/hive",
+      "args": [
+        "mcp-bridge",
+        "--log-level",
+        "disabled"
+      ],
+      "env": {
+        "HIVE_PASSPORT_TOKEN": "${HIVE_PASSPORT_TOKEN}"
+      }
+    }
+  }
+}

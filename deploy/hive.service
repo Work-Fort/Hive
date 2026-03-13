@@ -11,9 +11,9 @@ ExecStartPost=/bin/sh -c 'for i in $(seq 1 30); do curl -sf http://127.0.0.1:170
 Restart=on-failure
 RestartSec=5s
 
-# Load the API key from a file so it is not exposed in `systemctl status`.
-# Create the file with:  install -m 600 /dev/null ~/.config/hive/api-key
-# Then write your key:   echo -n 'your-key-here' > ~/.config/hive/api-key
+# Load environment overrides (e.g. HIVE_PASSPORT_URL).
+# Create the file with:  install -m 600 /dev/null ~/.config/hive/env
+# Example:  echo 'HIVE_PASSPORT_URL=http://passport.nexus:3000' > ~/.config/hive/env
 EnvironmentFile=-%h/.config/hive/env
 
 # Override defaults via environment (matches HIVE_* prefix in config.go).

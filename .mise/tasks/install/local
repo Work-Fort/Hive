@@ -9,4 +9,4 @@ install -Dm644 deploy/hive.service "$HOME/.config/systemd/user/hive.service"
 systemctl --user daemon-reload
 echo "Installed hive to ~/.local/bin and systemd user service"
 echo "Enable with: systemctl --user enable --now hive"
-echo "Set API key: echo 'HIVE_API_KEY=<key>' > ~/.config/hive/env && chmod 600 ~/.config/hive/env"
+echo "Configure: echo 'HIVE_PASSPORT_URL=http://passport.nexus:3000' > ~/.config/hive/env && chmod 600 ~/.config/hive/env"

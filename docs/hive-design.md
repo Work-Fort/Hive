@@ -14,7 +14,7 @@ bridge for Claude Code integration.
 
 ```
 hive daemon  [--bind 127.0.0.1] [--port 17000]
-hive mcp-bridge [--agent-id ID] [--host 127.0.0.1] [--port 17000]
+hive mcp-bridge [--passport-token TOKEN] [--host 127.0.0.1] [--port 17000]
 hive version
 ```
 
@@ -26,8 +26,8 @@ Config hierarchy: CLI flags > env vars (`HIVE_*`) > config file
 ### Route Layout
 
 ```
-/v1/*    REST API (JSON, API key auth)
-/mcp     MCP server (JSON-RPC 2.0, agent ID auth)
+/v1/*    REST API (JSON, Passport Bearer auth)
+/mcp     MCP server (JSON-RPC 2.0, Passport Bearer auth)
 /v1/health  Health check
 ```
 
@@ -216,9 +216,9 @@ Enforced in two places:
 
 ## REST API
 
-All endpoints under `/v1`. JSON request/response bodies. Authenticated via a
-single shared API key (`Authorization: Bearer <key>`). Key configured in
-`HIVE_API_KEY` env var or config file.
+All endpoints under `/v1`. JSON request/response bodies. Authenticated via
+Passport-issued JWT or API key (`Authorization: Bearer <token>`), validated
+against the Passport service at the configured `HIVE_PASSPORT_URL`.
 
 ### Pagination
 
@@ -294,8 +294,8 @@ Tools exposed to agents via the MCP bridge. The tool list is dynamically
 filtered per-session based on the agent's resolved permissions — agents only
 see tools they have access to.
 
-Agent identity comes from the `--agent-id` flag on the mcp-bridge, passed as a
-header to the daemon.
+Agent identity comes from the Passport Bearer token on the mcp-bridge's HTTP
+requests, resolved to an agent record by Passport UUID.
 
 | Tool | Description | Permission |
 |---|---|---|
@@ -319,16 +319,16 @@ on self-service provisioning and task management.
 
 ### REST API
 
-Single shared API key as described in the REST API section above. The REST API
-is an admin surface consumed by the WorkFort frontend.
+Authenticated via Passport-issued JWT or API key. The daemon validates tokens
+against the Passport service (JWKS for JWTs, verification endpoint for API
+keys). Passport is the source of truth for identity.
 
 ### MCP
 
 The mcp-bridge speaks stdio (JSON-RPC) to Claude Code and forwards requests to
-the daemon over HTTP (`POST /mcp`). Agent ID is passed as a header
-(`X-Agent-Id`) on every request. The daemon looks up the agent, resolves
-permissions, filters tools. No token exchange — the bridge is a trusted local
-process started by systemd.
+the daemon over HTTP (`POST /mcp`) with `Authorization: Bearer <token>`.
+The daemon validates the token via Passport, resolves the caller's identity,
+and looks up the agent record by Passport UUID. No `X-Agent-Id` header.
 
 ### MCP Session Lifecycle
 
@@ -428,7 +428,7 @@ no YAML files to maintain. Input structs use `doc:` tags for field descriptions,
 - `GET /openapi` — OpenAPI 3.1 JSON spec (served by Huma automatically)
 - `GET /docs` — Interactive Swagger UI documentation (served by Huma)
 
-Both endpoints are unauthenticated — they sit outside the API key middleware.
+Both endpoints are unauthenticated — they sit outside the Passport auth middleware.
 
 ### Handler Pattern
 
