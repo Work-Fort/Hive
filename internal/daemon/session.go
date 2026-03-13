@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	auth "github.com/Work-Fort/Passport/go/service-auth"
+
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
@@ -40,12 +42,12 @@ func contextWithAgent(ctx context.Context, agent *domain.Agent) context.Context 
 }
 
 // httpContextFunc returns a function for mcp-go's WithHTTPContextFunc that
-// extracts X-Agent-Id from the HTTP request and stores it in the context.
+// extracts the agent identity from the Passport context and stores it in the context.
 func httpContextFunc() func(ctx context.Context, r *http.Request) context.Context {
 	return func(ctx context.Context, r *http.Request) context.Context {
-		agentID := r.Header.Get("X-Agent-Id")
-		if agentID != "" {
-			ctx = contextWithAgentID(ctx, agentID)
+		id, ok := auth.IdentityFromContext(ctx)
+		if ok {
+			ctx = contextWithAgentID(ctx, id.ID)
 		}
 		return ctx
 	}
@@ -56,7 +58,7 @@ func httpContextFunc() func(ctx context.Context, r *http.Request) context.Contex
 func resolveAgent(ctx context.Context, store domain.Store) (context.Context, error) {
 	agentID := AgentIDFromContext(ctx)
 	if agentID == "" {
-		return ctx, fmt.Errorf("missing X-Agent-Id header")
+		return ctx, fmt.Errorf("missing agent identity")
 	}
 	agent, err := store.GetAgent(ctx, agentID)
 	if err != nil {
