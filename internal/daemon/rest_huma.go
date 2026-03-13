@@ -435,7 +435,7 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		if _, err := store.GetTeam(ctx, input.Body.TeamID); err != nil {
 			return nil, mapDomainErr(err)
 		}
-		agent := &domain.Agent{ID: NewID("ag"), Name: input.Body.Name, TeamID: input.Body.TeamID}
+		agent := &domain.Agent{ID: input.Body.ID, Name: input.Body.Name, TeamID: input.Body.TeamID}
 		if err := store.CreateAgent(ctx, agent); err != nil {
 			return nil, mapDomainErr(err)
 		}

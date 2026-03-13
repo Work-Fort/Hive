@@ -24,9 +24,9 @@ func (c *Client) ListAgents(ctx context.Context, teamID string) ([]Agent, error)
 	return out, c.doWithQuery(ctx, http.MethodGet, "/v1/agents", params, &out)
 }
 
-// CreateAgent creates a new agent with the given name in the given team.
-func (c *Client) CreateAgent(ctx context.Context, name, teamID string) (*Agent, error) {
-	body := map[string]string{"name": name, "team_id": teamID}
+// CreateAgent creates a new agent with the given Passport UUID, name, and team.
+func (c *Client) CreateAgent(ctx context.Context, id, name, teamID string) (*Agent, error) {
+	body := map[string]string{"id": id, "name": name, "team_id": teamID}
 	var out Agent
 	return &out, c.do(ctx, http.MethodPost, "/v1/agents", body, &out)
 }

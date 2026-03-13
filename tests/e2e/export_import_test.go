@@ -38,7 +38,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	agent, err := c.CreateAgent(ctx(), "claude", team.ID)
+	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000002", "claude", team.ID)
 	if err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}

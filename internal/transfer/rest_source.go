@@ -132,7 +132,7 @@ func (r *restDataSource) ListAllAgents(ctx context.Context) ([]*domain.Agent, er
 }
 
 func (r *restDataSource) CreateAgent(ctx context.Context, a *domain.Agent) error {
-	_, err := r.c.CreateAgent(ctx, a.Name, a.TeamID)
+	_, err := r.c.CreateAgent(ctx, a.ID, a.Name, a.TeamID)
 	return err
 }
 

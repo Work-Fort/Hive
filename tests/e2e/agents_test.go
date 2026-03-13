@@ -23,7 +23,7 @@ func TestAgents(t *testing.T) {
 	}
 
 	// Create
-	agent, err := c.CreateAgent(ctx(), "alice", team.ID)
+	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000006", "alice", team.ID)
 	if err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}

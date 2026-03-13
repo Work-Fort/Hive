@@ -188,6 +188,7 @@ type ListAgentsInput struct {
 
 type CreateAgentInput struct {
 	Body struct {
+		ID     string `json:"id" doc:"Passport UUID" minLength:"1"`
 		Name   string `json:"name" doc:"Agent name" minLength:"1"`
 		TeamID string `json:"team_id" doc:"Team ID" minLength:"1"`
 	}
