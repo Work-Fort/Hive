@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
@@ -34,7 +35,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 		t.Fatalf("create team: %v", err)
 	}
 
-	agent := &domain.Agent{ID: NewID("ag"), Name: "test-agent", TeamID: team.ID}
+	agent := &domain.Agent{ID: uuid.New().String(), Name: "test-agent", TeamID: team.ID}
 	if err := store.CreateAgent(context.Background(), agent); err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -247,7 +248,7 @@ func TestMemoryIsolation(t *testing.T) {
 		t.Fatalf("create team2: %v", err)
 	}
 
-	agent2 := &domain.Agent{ID: NewID("ag"), Name: "agent2", TeamID: team2.ID}
+	agent2 := &domain.Agent{ID: uuid.New().String(), Name: "agent2", TeamID: team2.ID}
 	if err := env.deps.Store.CreateAgent(context.Background(), agent2); err != nil {
 		t.Fatalf("create agent2: %v", err)
 	}
@@ -363,7 +364,7 @@ func TestTaskTeamIsolation(t *testing.T) {
 		t.Fatalf("create team2: %v", err)
 	}
 
-	agent2 := &domain.Agent{ID: NewID("ag"), Name: "agent2", TeamID: team2.ID}
+	agent2 := &domain.Agent{ID: uuid.New().String(), Name: "agent2", TeamID: team2.ID}
 	if err := env.deps.Store.CreateAgent(context.Background(), agent2); err != nil {
 		t.Fatalf("create agent2: %v", err)
 	}
@@ -427,7 +428,7 @@ func TestToolFilterHidesUnpermittedTools(t *testing.T) {
 		t.Fatalf("create team: %v", err)
 	}
 
-	agent := &domain.Agent{ID: NewID("ag"), Name: "limited-agent", TeamID: team.ID}
+	agent := &domain.Agent{ID: uuid.New().String(), Name: "limited-agent", TeamID: team.ID}
 	if err := store.CreateAgent(context.Background(), agent); err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -491,7 +492,7 @@ func TestToolFilterNoPermissions(t *testing.T) {
 		t.Fatalf("create team: %v", err)
 	}
 
-	agent := &domain.Agent{ID: NewID("ag"), Name: "noperm-agent", TeamID: team.ID}
+	agent := &domain.Agent{ID: uuid.New().String(), Name: "noperm-agent", TeamID: team.ID}
 	if err := store.CreateAgent(context.Background(), agent); err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
