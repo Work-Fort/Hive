@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/Work-Fort/Passport/go/service-auth v0.0.2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
