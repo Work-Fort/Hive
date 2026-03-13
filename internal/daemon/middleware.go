@@ -2,40 +2,21 @@
 package daemon
 
 import (
-	"crypto/subtle"
 	"net/http"
 	"strings"
 )
 
-// APIKeyAuth returns middleware that checks the Authorization header for a
-// Bearer token matching apiKey. Skips authentication if apiKey is empty.
-func APIKeyAuth(apiKey string, next http.Handler) http.Handler {
+// publicPathSkip routes public paths (health, OpenAPI docs) to the unprotected
+// handler, and all other paths through the Passport auth middleware.
+func publicPathSkip(passport http.Handler, unprotected http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if apiKey == "" {
-			next.ServeHTTP(w, r)
-			return
+		switch {
+		case r.URL.Path == "/v1/health",
+			r.URL.Path == "/openapi",
+			strings.HasPrefix(r.URL.Path, "/docs"):
+			unprotected.ServeHTTP(w, r)
+		default:
+			passport.ServeHTTP(w, r)
 		}
-		if r.URL.Path == "/v1/health" {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if !strings.HasPrefix(r.URL.Path, "/v1/") {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		auth := r.Header.Get("Authorization")
-		if auth == "" {
-			writeError(w, http.StatusUnauthorized, "missing authorization header")
-			return
-		}
-
-		token, found := strings.CutPrefix(auth, "Bearer ")
-		if !found || subtle.ConstantTimeCompare([]byte(token), []byte(apiKey)) != 1 {
-			writeError(w, http.StatusForbidden, "invalid api key")
-			return
-		}
-
-		next.ServeHTTP(w, r)
 	})
 }

@@ -7,76 +7,42 @@ import (
 	"testing"
 )
 
-func TestAPIKeyAuth_NoKeyConfigured(t *testing.T) {
-	handler := APIKeyAuth("", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestPublicPathSkip_HealthSkipped(t *testing.T) {
+	protected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	unprotected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest("GET", "/v1/teams", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusOK)
+	})
+
+	handler := publicPathSkip(protected, unprotected)
+
+	for _, path := range []string{"/v1/health", "/openapi", "/docs", "/docs/index.html"} {
+		req := httptest.NewRequest("GET", path, nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Errorf("path %q: got status %d, want %d (should skip auth)", path, rr.Code, http.StatusOK)
+		}
 	}
 }
 
-func TestAPIKeyAuth_HealthSkipped(t *testing.T) {
-	handler := APIKeyAuth("secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestPublicPathSkip_ProtectedPaths(t *testing.T) {
+	protected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	unprotected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest("GET", "/v1/health", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusOK)
-	}
-}
+	})
 
-func TestAPIKeyAuth_MissingHeader(t *testing.T) {
-	handler := APIKeyAuth("secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("handler should not be called")
-	}))
-	req := httptest.NewRequest("GET", "/v1/teams", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusUnauthorized)
-	}
-}
+	handler := publicPathSkip(protected, unprotected)
 
-func TestAPIKeyAuth_WrongKey(t *testing.T) {
-	handler := APIKeyAuth("secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("handler should not be called")
-	}))
-	req := httptest.NewRequest("GET", "/v1/teams", nil)
-	req.Header.Set("Authorization", "Bearer wrong")
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusForbidden)
-	}
-}
-
-func TestAPIKeyAuth_ValidKey(t *testing.T) {
-	handler := APIKeyAuth("secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest("GET", "/v1/teams", nil)
-	req.Header.Set("Authorization", "Bearer secret")
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusOK)
-	}
-}
-
-func TestAPIKeyAuth_NonV1Skipped(t *testing.T) {
-	handler := APIKeyAuth("secret", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	req := httptest.NewRequest("POST", "/mcp", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK {
-		t.Errorf("got status %d, want %d", rr.Code, http.StatusOK)
+	for _, path := range []string{"/v1/teams", "/v1/agents", "/mcp"} {
+		req := httptest.NewRequest("GET", path, nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("path %q: got status %d, want %d (should require auth)", path, rr.Code, http.StatusUnauthorized)
+		}
 	}
 }

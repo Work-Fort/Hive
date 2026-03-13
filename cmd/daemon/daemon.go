@@ -26,7 +26,7 @@ func NewCmd() *cobra.Command {
 	var bind string
 	var port int
 	var db string
-	var apiKey string
+	var passportURL string
 
 	cmd := &cobra.Command{
 		Use:   "daemon",
@@ -41,22 +41,23 @@ func NewCmd() *cobra.Command {
 			if !cmd.Flags().Changed("db") {
 				db = viper.GetString("db")
 			}
-			if !cmd.Flags().Changed("api-key") {
-				apiKey = viper.GetString("api-key")
+			if !cmd.Flags().Changed("passport-url") {
+				passportURL = viper.GetString("passport-url")
 			}
-			return run(bind, port, db, apiKey)
+			return run(bind, port, db, passportURL)
 		},
 	}
 
 	cmd.Flags().StringVar(&bind, "bind", "127.0.0.1", "Bind address")
 	cmd.Flags().IntVar(&port, "port", 17000, "Listen port")
 	cmd.Flags().StringVar(&db, "db", "", "Database DSN (postgres://... or SQLite file path)")
-	cmd.Flags().StringVar(&apiKey, "api-key", "", "API key for REST authentication")
+	cmd.Flags().StringVar(&passportURL, "passport-url", "http://passport.nexus:3000",
+		"Passport auth service URL")
 
 	return cmd
 }
 
-func run(bind string, port int, db, apiKey string) error {
+func run(bind string, port int, db, passportURL string) error {
 	health := hiveDaemon.NewHealthService()
 
 	// Database
@@ -103,7 +104,7 @@ func run(bind string, port int, db, apiKey string) error {
 	srv := hiveDaemon.NewServer(hiveDaemon.ServerConfig{
 		Bind:         bind,
 		Port:         port,
-		APIKey:       apiKey,
+		PassportURL:  passportURL,
 		Health:       health,
 		Store:        store,
 		Provisioning: provisioning,

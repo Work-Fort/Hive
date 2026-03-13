@@ -16,7 +16,7 @@ import (
 func NewCmd() *cobra.Command {
 	var host string
 	var port int
-	var apiKey string
+	var passportToken string
 	var db string
 	var upsert bool
 	var dryRun bool
@@ -32,8 +32,8 @@ func NewCmd() *cobra.Command {
 			if !cmd.Flags().Changed("port") {
 				port = viper.GetInt("port")
 			}
-			if !cmd.Flags().Changed("api-key") {
-				apiKey = viper.GetString("api-key")
+			if !cmd.Flags().Changed("passport-token") {
+				passportToken = viper.GetString("passport-token")
 			}
 
 			dir := args[0]
@@ -49,7 +49,7 @@ func NewCmd() *cobra.Command {
 				ds = transfer.NewDBDataSource(store)
 			} else {
 				baseURL := fmt.Sprintf("http://%s:%d", host, port)
-				ds = transfer.NewRESTDataSource(client.New(baseURL, apiKey))
+				ds = transfer.NewRESTDataSource(client.New(baseURL, passportToken))
 			}
 
 			opts := transfer.ImportOptions{
@@ -83,7 +83,7 @@ func NewCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Daemon host")
 	cmd.Flags().IntVar(&port, "port", 17000, "Daemon port")
-	cmd.Flags().StringVar(&apiKey, "api-key", "", "API key for REST authentication")
+	cmd.Flags().StringVar(&passportToken, "passport-token", "", "Passport JWT or API key")
 	cmd.Flags().StringVar(&db, "db", "", "Database DSN for direct DB access")
 	cmd.Flags().BoolVar(&upsert, "upsert", false, "Update existing entities instead of failing")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Validate only, don't create")

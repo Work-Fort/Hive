@@ -12,11 +12,12 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // NewCmd returns the mcp-bridge cobra command.
 func NewCmd() *cobra.Command {
-	var agentID string
+	var passportToken string
 	var host string
 	var port int
 
@@ -24,20 +25,24 @@ func NewCmd() *cobra.Command {
 		Use:   "mcp-bridge",
 		Short: "Stdio-to-HTTP MCP bridge",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(agentID, host, port)
+			if !cmd.Flags().Changed("passport-token") {
+				passportToken = viper.GetString("passport-token")
+			}
+			if passportToken == "" {
+				return fmt.Errorf("passport token required: set --passport-token, HIVE_PASSPORT_TOKEN, or passport-token in config")
+			}
+			return run(passportToken, host, port)
 		},
 	}
 
-	cmd.Flags().StringVar(&agentID, "agent-id", "", "Agent ID this bridge serves (required)")
+	cmd.Flags().StringVar(&passportToken, "passport-token", "", "Passport JWT or API key")
 	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Daemon host")
 	cmd.Flags().IntVar(&port, "port", 17000, "Daemon port")
-
-	cmd.MarkFlagRequired("agent-id")
 
 	return cmd
 }
 
-func run(agentID, host string, port int) error {
+func run(passportToken, host string, port int) error {
 	mcpURL := fmt.Sprintf("http://%s:%d/mcp", host, port)
 
 	client := &http.Client{Timeout: 60 * time.Second}
@@ -59,7 +64,7 @@ func run(agentID, host string, port int) error {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-Agent-Id", agentID)
+		req.Header.Set("Authorization", "Bearer "+passportToken)
 		if sessionID != "" {
 			req.Header.Set("Mcp-Session-Id", sessionID)
 		}

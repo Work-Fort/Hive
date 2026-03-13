@@ -2,13 +2,19 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+
+	auth "github.com/Work-Fort/Passport/go/service-auth"
+	"github.com/Work-Fort/Passport/go/service-auth/apikey"
+	"github.com/Work-Fort/Passport/go/service-auth/jwt"
 
 	"github.com/Work-Fort/Hive/internal/domain"
 )
@@ -17,7 +23,7 @@ import (
 type ServerConfig struct {
 	Bind         string
 	Port         int
-	APIKey       string
+	PassportURL  string
 	Health       *HealthService
 	Store        domain.Store
 	Provisioning *ProvisioningService
@@ -52,9 +58,26 @@ func NewServer(cfg ServerConfig) *http.Server {
 	})
 	mux.Handle("/mcp", mcpHandler)
 
-	// Wrap with API key auth middleware.
-	// Middleware already skips non-/v1/ paths, so /openapi and /docs are public.
-	handler := APIKeyAuth(cfg.APIKey, mux)
+	// Passport auth middleware — validates JWT and API key tokens.
+	var handler http.Handler
+	if cfg.PassportURL != "" {
+		opts := auth.DefaultOptions(cfg.PassportURL)
+		jwtV, err := jwt.New(context.Background(), opts.JWKSURL, opts.JWKSRefreshInterval)
+		if err != nil {
+			log.Warn("jwt validator init failed, falling back to API key only", "err", err)
+		}
+
+		var validators []auth.Validator
+		if jwtV != nil {
+			validators = append(validators, jwtV)
+		}
+		validators = append(validators, apikey.New(opts.VerifyAPIKeyURL, opts.APIKeyCacheTTL))
+
+		passportMW := auth.NewFromValidators(validators...)
+		handler = publicPathSkip(passportMW(mux), mux)
+	} else {
+		handler = mux
+	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.Bind, cfg.Port)
 
