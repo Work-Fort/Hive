@@ -21,17 +21,17 @@ import (
 type Client struct {
 	http    http.Client
 	baseURL string
-	apiKey  string
+	token   string
 }
 
 // New creates a new Client. baseURL should be the scheme+host+port of the
-// Hive daemon (e.g., "http://127.0.0.1:17000"). apiKey is sent as a Bearer
-// token on every authenticated request.
-func New(baseURL string, apiKey string) *Client {
+// Hive daemon (e.g., "http://127.0.0.1:17000"). token is a Passport JWT or
+// API key sent as a Bearer token on every authenticated request.
+func New(baseURL string, token string) *Client {
 	return &Client{
 		http:    http.Client{Timeout: 30 * time.Second},
 		baseURL: strings.TrimRight(baseURL, "/"),
-		apiKey:  apiKey,
+		token:   token,
 	}
 }
 
@@ -56,8 +56,8 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 		req.Header.Set("Content-Type", "application/json")
 	}
 	req.Header.Set("Accept", "application/json")
-	if c.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
 
 	resp, err := c.http.Do(req)
