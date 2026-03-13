@@ -15,6 +15,7 @@ CREATE TABLE roles (
     updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Agent IDs are Passport UUIDs (not auto-generated prefixed IDs).
 CREATE TABLE agents (
     id         TEXT PRIMARY KEY,
     name       TEXT UNIQUE NOT NULL,
