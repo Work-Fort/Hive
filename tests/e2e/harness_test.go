@@ -2,7 +2,9 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,9 +20,12 @@ import (
 const (
 	// testPassportURL is the Passport instance used for E2E tests.
 	testPassportURL = "http://passport.nexus:3000"
-	// testPassportToken is a Passport-issued API key for E2E tests.
-	// Must be pre-provisioned in the Passport instance.
-	testPassportToken = "PLACEHOLDER_REPLACE_WITH_REAL_TOKEN"
+
+	// Test user credentials for Passport.
+	testEmail    = "e2e-test@workfort.dev"
+	testPassword = "e2e-test-password-2026"
+	testUsername = "e2e-test"
+	testName     = "E2E Test User"
 
 	// startupTimeout is how long to wait for the daemon health endpoint to
 	// respond before declaring startup a failure.
@@ -29,6 +34,10 @@ const (
 	// pollInterval is how often to probe the health endpoint during startup.
 	pollInterval = 50 * time.Millisecond
 )
+
+// testPassportToken is a JWT obtained from Passport in TestMain.
+// JWTs are validated locally via JWKS (no rate limit), unlike API keys.
+var testPassportToken string
 
 // Harness manages a single daemon process for a test. Each call to
 // newHarness starts a fresh daemon with isolated XDG directories and a
@@ -174,4 +183,58 @@ func freePort() (int, error) {
 // ctx returns a background context. Helper so test bodies stay concise.
 func ctx() context.Context {
 	return context.Background()
+}
+
+// obtainPassportJWT signs in to Passport and returns a JWT. The JWT is
+// validated locally by daemons via JWKS (no rate limit, unlike API keys).
+func obtainPassportJWT() (string, error) {
+	hc := &http.Client{Timeout: 10 * time.Second}
+
+	// Sign in to get a session cookie.
+	signInBody, _ := json.Marshal(map[string]string{
+		"email":    testEmail,
+		"password": testPassword,
+	})
+	req, _ := http.NewRequest("POST", testPassportURL+"/v1/sign-in/email", bytes.NewReader(signInBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := hc.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("sign-in request: %w", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("sign-in returned %d", resp.StatusCode)
+	}
+
+	// Extract session cookie.
+	var sessionCookie *http.Cookie
+	for _, c := range resp.Cookies() {
+		if c.Name == "better-auth.session_token" {
+			sessionCookie = c
+			break
+		}
+	}
+	if sessionCookie == nil {
+		return "", fmt.Errorf("no session cookie in sign-in response")
+	}
+
+	// Get JWT from the token endpoint.
+	tokenReq, _ := http.NewRequest("GET", testPassportURL+"/v1/token", nil)
+	tokenReq.AddCookie(sessionCookie)
+	tokenResp, err := hc.Do(tokenReq)
+	if err != nil {
+		return "", fmt.Errorf("token request: %w", err)
+	}
+	defer tokenResp.Body.Close()
+	if tokenResp.StatusCode != 200 {
+		return "", fmt.Errorf("token endpoint returned %d", tokenResp.StatusCode)
+	}
+
+	var tokenBody struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(tokenResp.Body).Decode(&tokenBody); err != nil {
+		return "", fmt.Errorf("decode token response: %w", err)
+	}
+	return tokenBody.Token, nil
 }
