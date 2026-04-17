@@ -32,6 +32,7 @@ jobs:
           default_bump: false
           release_branches: master
           tag_prefix: v
+          paths: ':!client/**'
 
       - name: Check if new tag was created
         id: check_tag
