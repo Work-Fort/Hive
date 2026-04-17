@@ -69,8 +69,8 @@ func (d *dbDataSource) CreateAgent(ctx context.Context, a *domain.Agent) error {
 	return d.store.CreateAgent(ctx, a)
 }
 
-func (d *dbDataSource) UpdateAgent(ctx context.Context, id, name, teamID string) error {
-	return d.store.UpdateAgent(ctx, id, name, teamID)
+func (d *dbDataSource) UpdateAgent(ctx context.Context, a *domain.Agent) error {
+	return d.store.UpdateAgent(ctx, a)
 }
 
 func (d *dbDataSource) LookupAgentByName(ctx context.Context, name string) (*domain.Agent, error) {

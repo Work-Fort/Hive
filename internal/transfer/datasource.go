@@ -30,7 +30,7 @@ type DataSource interface {
 	// Agents
 	ListAllAgents(ctx context.Context) ([]*domain.Agent, error)
 	CreateAgent(ctx context.Context, a *domain.Agent) error
-	UpdateAgent(ctx context.Context, id, name, teamID string) error
+	UpdateAgent(ctx context.Context, a *domain.Agent) error
 	LookupAgentByName(ctx context.Context, name string) (*domain.Agent, error)
 	GetAgentRoles(ctx context.Context, agentID string) ([]domain.AgentRole, error)
 	SetAgentRoles(ctx context.Context, agentID string, roles []domain.AgentRole) error

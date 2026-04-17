@@ -44,10 +44,18 @@ type Role struct {
 
 // Agent is a provisioned identity that belongs to one team and can be
 // assigned multiple roles with priority ordering.
+//
+// Model and Runtime describe how the agent is executed. Both are free-form
+// strings — Hive does not validate them against a catalog, since LLM model
+// IDs and adjutant runtime variants change independently. Runtime is
+// descriptive (tells an operator which adjutant image is deployed) rather
+// than prescriptive (Hive does not spawn VMs).
 type Agent struct {
 	ID        string
 	Name      string
 	TeamID    string
+	Model     string // e.g. "claude-sonnet-4-6", "claude-opus-4-7"
+	Runtime   string // e.g. "claude-cli", "go-adk"
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -110,9 +118,11 @@ type ProvisioningResponse struct {
 // AgentIdentity is the subset of agent fields returned in a provisioning
 // response so an agent can learn its own identity from a single call.
 type AgentIdentity struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	TeamID string `json:"team_id"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	TeamID  string `json:"team_id"`
+	Model   string `json:"model,omitempty"`
+	Runtime string `json:"runtime,omitempty"`
 }
 
 // ProvisioningRoleGroup is a single role assignment with its full

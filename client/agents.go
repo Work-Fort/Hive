@@ -24,9 +24,17 @@ func (c *Client) ListAgents(ctx context.Context, teamID string) ([]Agent, error)
 	return out, c.doWithQuery(ctx, http.MethodGet, "/v1/agents", params, &out)
 }
 
-// CreateAgent creates a new agent with the given Passport UUID, name, and team.
-func (c *Client) CreateAgent(ctx context.Context, id, name, teamID string) (*Agent, error) {
-	body := map[string]string{"id": id, "name": name, "team_id": teamID}
+// CreateAgent creates a new agent with the given Passport UUID, name, team,
+// model, and runtime. Pass empty strings for model/runtime to leave them
+// unset on the new record.
+func (c *Client) CreateAgent(ctx context.Context, id, name, teamID, model, runtime string) (*Agent, error) {
+	body := map[string]string{
+		"id":      id,
+		"name":    name,
+		"team_id": teamID,
+		"model":   model,
+		"runtime": runtime,
+	}
 	var out Agent
 	return &out, c.do(ctx, http.MethodPost, "/v1/agents", body, &out)
 }
@@ -37,9 +45,23 @@ func (c *Client) GetAgent(ctx context.Context, id string) (*AgentWithRoles, erro
 	return &out, c.do(ctx, http.MethodGet, "/v1/agents/"+id, nil, &out)
 }
 
-// UpdateAgent updates the name and team of the agent with the given ID.
-func (c *Client) UpdateAgent(ctx context.Context, id, name, teamID string) (*Agent, error) {
-	body := map[string]string{"name": name, "team_id": teamID}
+// GetMe returns the agent record for the caller, resolved from the Passport
+// token in the request. Used by adjutant runtimes to fetch their own
+// model/runtime at startup without knowing their agent ID in advance.
+func (c *Client) GetMe(ctx context.Context) (*Agent, error) {
+	var out Agent
+	return &out, c.do(ctx, http.MethodGet, "/v1/agents/me", nil, &out)
+}
+
+// UpdateAgent updates the name, team, model, and runtime of the agent with
+// the given ID.
+func (c *Client) UpdateAgent(ctx context.Context, id, name, teamID, model, runtime string) (*Agent, error) {
+	body := map[string]string{
+		"name":    name,
+		"team_id": teamID,
+		"model":   model,
+		"runtime": runtime,
+	}
 	var out Agent
 	return &out, c.do(ctx, http.MethodPut, "/v1/agents/"+id, body, &out)
 }

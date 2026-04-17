@@ -85,9 +85,11 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 
 	return &domain.ProvisioningResponse{
 		Agent: domain.AgentIdentity{
-			ID:     agent.ID,
-			Name:   agent.Name,
-			TeamID: agent.TeamID,
+			ID:      agent.ID,
+			Name:    agent.Name,
+			TeamID:  agent.TeamID,
+			Model:   agent.Model,
+			Runtime: agent.Runtime,
 		},
 		Roles:  groups,
 		Memory: memory,

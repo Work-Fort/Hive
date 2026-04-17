@@ -132,6 +132,32 @@ func TestResolve_IncludesAgentIdentity(t *testing.T) {
 	}
 }
 
+func TestResolve_IncludesModelAndRuntime(t *testing.T) {
+	ctx := context.Background()
+	store, ps := testSetup(t, 10)
+
+	teamID := seedTeam(t, ctx, store, "alpha")
+	// seedAgent creates with empty model/runtime; update directly.
+	agentID := seedAgent(t, ctx, store, "worker-02", teamID)
+	if err := store.UpdateAgent(ctx, &domain.Agent{
+		ID: agentID, Name: "worker-02", TeamID: teamID,
+		Model: "claude-sonnet-4-6", Runtime: "claude-cli",
+	}); err != nil {
+		t.Fatalf("update agent: %v", err)
+	}
+
+	resp, err := ps.Resolve(ctx, agentID)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if resp.Agent.Model != "claude-sonnet-4-6" {
+		t.Errorf("Agent.Model = %q, want %q", resp.Agent.Model, "claude-sonnet-4-6")
+	}
+	if resp.Agent.Runtime != "claude-cli" {
+		t.Errorf("Agent.Runtime = %q, want %q", resp.Agent.Runtime, "claude-cli")
+	}
+}
+
 func TestResolve_UnknownAgent_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	_, ps := testSetup(t, 10)

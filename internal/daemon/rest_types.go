@@ -188,17 +188,21 @@ type ListAgentsInput struct {
 
 type CreateAgentInput struct {
 	Body struct {
-		ID     string `json:"id" doc:"Passport UUID" minLength:"1"`
-		Name   string `json:"name" doc:"Agent name" minLength:"1"`
-		TeamID string `json:"team_id" doc:"Team ID" minLength:"1"`
+		ID      string `json:"id" doc:"Passport UUID" minLength:"1"`
+		Name    string `json:"name" doc:"Agent name" minLength:"1"`
+		TeamID  string `json:"team_id" doc:"Team ID" minLength:"1"`
+		Model   string `json:"model,omitempty" doc:"LLM model identifier (e.g. claude-sonnet-4-6)"`
+		Runtime string `json:"runtime,omitempty" doc:"Adjutant runtime variant (e.g. claude-cli, go-adk)"`
 	}
 }
 
 type UpdateAgentInput struct {
 	ID   string `path:"id" doc:"Agent ID"`
 	Body struct {
-		Name   string `json:"name" doc:"Agent name" minLength:"1"`
-		TeamID string `json:"team_id" doc:"Team ID" minLength:"1"`
+		Name    string `json:"name" doc:"Agent name" minLength:"1"`
+		TeamID  string `json:"team_id" doc:"Team ID" minLength:"1"`
+		Model   string `json:"model,omitempty" doc:"LLM model identifier"`
+		Runtime string `json:"runtime,omitempty" doc:"Adjutant runtime variant"`
 	}
 }
 
@@ -230,6 +234,8 @@ type agentResponse struct {
 	ID        string    `json:"ID" doc:"Agent ID"`
 	Name      string    `json:"Name" doc:"Agent name"`
 	TeamID    string    `json:"TeamID" doc:"Team ID"`
+	Model     string    `json:"Model,omitempty" doc:"LLM model identifier"`
+	Runtime   string    `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
 	CreatedAt time.Time `json:"CreatedAt" doc:"Creation timestamp"`
 	UpdatedAt time.Time `json:"UpdatedAt" doc:"Last update timestamp"`
 }
@@ -238,6 +244,8 @@ type agentDetailResponse struct {
 	ID        string              `json:"ID" doc:"Agent ID"`
 	Name      string              `json:"Name" doc:"Agent name"`
 	TeamID    string              `json:"TeamID" doc:"Team ID"`
+	Model     string              `json:"Model,omitempty" doc:"LLM model identifier"`
+	Runtime   string              `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
 	CreatedAt time.Time           `json:"CreatedAt" doc:"Creation timestamp"`
 	UpdatedAt time.Time           `json:"UpdatedAt" doc:"Last update timestamp"`
 	Roles     []agentRoleResponse `json:"roles" doc:"Assigned roles"`

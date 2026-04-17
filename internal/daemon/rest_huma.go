@@ -8,6 +8,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	auth "github.com/Work-Fort/Passport/go/service-auth"
+
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
@@ -60,6 +62,7 @@ func docToResponse(d *domain.Document) documentResponse {
 func agentToResponse(a *domain.Agent) agentResponse {
 	return agentResponse{
 		ID: a.ID, Name: a.Name, TeamID: a.TeamID,
+		Model: a.Model, Runtime: a.Runtime,
 		CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 	}
 }
@@ -425,6 +428,25 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "get-me",
+		Method:      http.MethodGet,
+		Path:        "/v1/agents/me",
+		Summary:     "Get the agent record for the caller",
+		Description: "Resolves the caller's Passport identity from the Authorization header and returns the matching agent record (including Model and Runtime). Used by adjutant runtimes to fetch their own configuration at startup without knowing their agent ID.",
+		Tags:        []string{"Agents"},
+	}, func(ctx context.Context, _ *struct{}) (*AgentOutput, error) {
+		id, ok := auth.IdentityFromContext(ctx)
+		if !ok || id.ID == "" {
+			return nil, huma.Error401Unauthorized("no authenticated identity")
+		}
+		agent, err := store.GetAgent(ctx, id.ID)
+		if err != nil {
+			return nil, mapDomainErr(err)
+		}
+		return &AgentOutput{Body: agentToResponse(agent)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "create-agent",
 		Method:        http.MethodPost,
 		Path:          "/v1/agents",
@@ -435,7 +457,10 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		if _, err := store.GetTeam(ctx, input.Body.TeamID); err != nil {
 			return nil, mapDomainErr(err)
 		}
-		agent := &domain.Agent{ID: input.Body.ID, Name: input.Body.Name, TeamID: input.Body.TeamID}
+		agent := &domain.Agent{
+			ID: input.Body.ID, Name: input.Body.Name, TeamID: input.Body.TeamID,
+			Model: input.Body.Model, Runtime: input.Body.Runtime,
+		}
 		if err := store.CreateAgent(ctx, agent); err != nil {
 			return nil, mapDomainErr(err)
 		}
@@ -466,6 +491,7 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		}
 		return &AgentDetailOutput{Body: agentDetailResponse{
 			ID: agent.ID, Name: agent.Name, TeamID: agent.TeamID,
+			Model: agent.Model, Runtime: agent.Runtime,
 			CreatedAt: agent.CreatedAt, UpdatedAt: agent.UpdatedAt,
 			Roles: agentRolesToResponse(roles),
 		}}, nil
@@ -478,7 +504,11 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		Summary:     "Update an agent",
 		Tags:        []string{"Agents"},
 	}, func(ctx context.Context, input *UpdateAgentInput) (*AgentOutput, error) {
-		if err := store.UpdateAgent(ctx, input.ID, input.Body.Name, input.Body.TeamID); err != nil {
+		agent := &domain.Agent{
+			ID: input.ID, Name: input.Body.Name, TeamID: input.Body.TeamID,
+			Model: input.Body.Model, Runtime: input.Body.Runtime,
+		}
+		if err := store.UpdateAgent(ctx, agent); err != nil {
 			return nil, mapDomainErr(err)
 		}
 		updated, err := store.GetAgent(ctx, input.ID)

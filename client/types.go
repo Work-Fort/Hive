@@ -25,6 +25,8 @@ type Agent struct {
 	ID        string    `json:"ID"`
 	Name      string    `json:"Name"`
 	TeamID    string    `json:"TeamID"`
+	Model     string    `json:"Model,omitempty"`
+	Runtime   string    `json:"Runtime,omitempty"`
 	CreatedAt time.Time `json:"CreatedAt"`
 	UpdatedAt time.Time `json:"UpdatedAt"`
 }

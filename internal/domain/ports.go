@@ -36,7 +36,7 @@ type AgentStore interface {
 	CreateAgent(ctx context.Context, a *Agent) error
 	GetAgent(ctx context.Context, id string) (*Agent, error)
 	ListAgents(ctx context.Context, teamID string) ([]*Agent, error)
-	UpdateAgent(ctx context.Context, id, name, teamID string) error
+	UpdateAgent(ctx context.Context, a *Agent) error
 	DeleteAgent(ctx context.Context, id string) error
 
 	SetAgentRoles(ctx context.Context, agentID string, roles []AgentRole) error

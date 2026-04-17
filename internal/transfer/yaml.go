@@ -44,6 +44,8 @@ type AgentPermissionEntry struct {
 type AgentFile struct {
 	Name        string                 `yaml:"name"`
 	Team        string                 `yaml:"team"`
+	Model       string                 `yaml:"model,omitempty"`
+	Runtime     string                 `yaml:"runtime,omitempty"`
 	CreatedAt   time.Time              `yaml:"created_at"`
 	UpdatedAt   time.Time              `yaml:"updated_at"`
 	Roles       []AgentRoleEntry       `yaml:"roles,omitempty"`

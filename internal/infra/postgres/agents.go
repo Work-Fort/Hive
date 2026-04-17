@@ -11,6 +11,18 @@ import (
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
+const agentCols = "id, name, team_id, model, runtime, created_at, updated_at"
+
+func scanAgent(row interface {
+	Scan(dest ...any) error
+}) (*domain.Agent, error) {
+	var a domain.Agent
+	if err := row.Scan(&a.ID, &a.Name, &a.TeamID, &a.Model, &a.Runtime, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
 func (s *Store) CreateAgent(ctx context.Context, a *domain.Agent) error {
 	now := time.Now().UTC()
 	if a.CreatedAt.IsZero() {
@@ -20,8 +32,8 @@ func (s *Store) CreateAgent(ctx context.Context, a *domain.Agent) error {
 		a.UpdatedAt = now
 	}
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO agents (id, name, team_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)",
-		a.ID, a.Name, a.TeamID, a.CreatedAt.UTC(), a.UpdatedAt.UTC())
+		"INSERT INTO agents ("+agentCols+") VALUES ($1, $2, $3, $4, $5, $6, $7)",
+		a.ID, a.Name, a.TeamID, a.Model, a.Runtime, a.CreatedAt.UTC(), a.UpdatedAt.UTC())
 	if err != nil {
 		if isUniqueViolation(err) {
 			return fmt.Errorf("%w: agent %q", domain.ErrAlreadyExists, a.Name)
@@ -32,17 +44,15 @@ func (s *Store) CreateAgent(ctx context.Context, a *domain.Agent) error {
 }
 
 func (s *Store) GetAgent(ctx context.Context, id string) (*domain.Agent, error) {
-	var a domain.Agent
-	err := s.db.QueryRowContext(ctx,
-		"SELECT id, name, team_id, created_at, updated_at FROM agents WHERE id = $1", id,
-	).Scan(&a.ID, &a.Name, &a.TeamID, &a.CreatedAt, &a.UpdatedAt)
+	row := s.db.QueryRowContext(ctx, "SELECT "+agentCols+" FROM agents WHERE id = $1", id)
+	a, err := scanAgent(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w: agent %q", domain.ErrNotFound, id)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get agent: %w", err)
 	}
-	return &a, nil
+	return a, nil
 }
 
 func (s *Store) ListAgents(ctx context.Context, teamID string) ([]*domain.Agent, error) {
@@ -51,11 +61,10 @@ func (s *Store) ListAgents(ctx context.Context, teamID string) ([]*domain.Agent,
 
 	if teamID != "" {
 		rows, err = s.db.QueryContext(ctx,
-			"SELECT id, name, team_id, created_at, updated_at FROM agents WHERE team_id = $1 ORDER BY name",
-			teamID)
+			"SELECT "+agentCols+" FROM agents WHERE team_id = $1 ORDER BY name", teamID)
 	} else {
 		rows, err = s.db.QueryContext(ctx,
-			"SELECT id, name, team_id, created_at, updated_at FROM agents ORDER BY name")
+			"SELECT "+agentCols+" FROM agents ORDER BY name")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list agents: %w", err)
@@ -64,28 +73,28 @@ func (s *Store) ListAgents(ctx context.Context, teamID string) ([]*domain.Agent,
 
 	var agents []*domain.Agent
 	for rows.Next() {
-		var a domain.Agent
-		if err := rows.Scan(&a.ID, &a.Name, &a.TeamID, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		a, err := scanAgent(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan agent: %w", err)
 		}
-		agents = append(agents, &a)
+		agents = append(agents, a)
 	}
 	return agents, rows.Err()
 }
 
-func (s *Store) UpdateAgent(ctx context.Context, id, name, teamID string) error {
+func (s *Store) UpdateAgent(ctx context.Context, a *domain.Agent) error {
 	res, err := s.db.ExecContext(ctx,
-		"UPDATE agents SET name = $1, team_id = $2, updated_at = NOW() WHERE id = $3",
-		name, teamID, id)
+		"UPDATE agents SET name = $1, team_id = $2, model = $3, runtime = $4, updated_at = NOW() WHERE id = $5",
+		a.Name, a.TeamID, a.Model, a.Runtime, a.ID)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return fmt.Errorf("%w: agent %q", domain.ErrAlreadyExists, name)
+			return fmt.Errorf("%w: agent %q", domain.ErrAlreadyExists, a.Name)
 		}
 		return fmt.Errorf("update agent: %w", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
-		return fmt.Errorf("%w: agent %q", domain.ErrNotFound, id)
+		return fmt.Errorf("%w: agent %q", domain.ErrNotFound, a.ID)
 	}
 	return nil
 }
@@ -164,15 +173,13 @@ func (s *Store) GetAgentRoles(ctx context.Context, agentID string) ([]domain.Age
 }
 
 func (s *Store) LookupAgentByName(ctx context.Context, name string) (*domain.Agent, error) {
-	var a domain.Agent
-	err := s.db.QueryRowContext(ctx,
-		"SELECT id, name, team_id, created_at, updated_at FROM agents WHERE name = $1", name,
-	).Scan(&a.ID, &a.Name, &a.TeamID, &a.CreatedAt, &a.UpdatedAt)
+	row := s.db.QueryRowContext(ctx, "SELECT "+agentCols+" FROM agents WHERE name = $1", name)
+	a, err := scanAgent(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w: agent named %q", domain.ErrNotFound, name)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("lookup agent by name: %w", err)
 	}
-	return &a, nil
+	return a, nil
 }

@@ -28,6 +28,46 @@ func TestCreateAndGetAgent(t *testing.T) {
 	}
 }
 
+func TestAgent_ModelAndRuntime_Roundtrip(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+
+	agent := &domain.Agent{
+		ID:      "a_001",
+		Name:    "worker-01",
+		TeamID:  "t_001",
+		Model:   "claude-sonnet-4-6",
+		Runtime: "claude-cli",
+	}
+	if err := store.CreateAgent(ctx, agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	got, err := store.GetAgent(ctx, "a_001")
+	if err != nil {
+		t.Fatalf("get agent: %v", err)
+	}
+	if got.Model != "claude-sonnet-4-6" {
+		t.Errorf("Model = %q, want %q", got.Model, "claude-sonnet-4-6")
+	}
+	if got.Runtime != "claude-cli" {
+		t.Errorf("Runtime = %q, want %q", got.Runtime, "claude-cli")
+	}
+
+	// Update through new signature taking *Agent.
+	agent.Model = "claude-opus-4-7"
+	agent.Runtime = "go-adk"
+	if err := store.UpdateAgent(ctx, agent); err != nil {
+		t.Fatalf("update agent: %v", err)
+	}
+	got2, _ := store.GetAgent(ctx, "a_001")
+	if got2.Model != "claude-opus-4-7" || got2.Runtime != "go-adk" {
+		t.Errorf("after update: got %+v", got2)
+	}
+}
+
 func TestSetAndGetAgentRoles(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()

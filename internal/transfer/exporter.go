@@ -121,6 +121,7 @@ func Export(ctx context.Context, ds DataSource, dir string) (*ExportResult, erro
 
 		af := AgentFile{
 			Name: a.Name, Team: teamNames[a.TeamID],
+			Model: a.Model, Runtime: a.Runtime,
 			CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 			Roles: roleEntries, Permissions: permEntries,
 		}

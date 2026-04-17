@@ -414,7 +414,11 @@ func importAgent(ctx context.Context, ds DataSource, af AgentFile, teamID string
 	if isNew {
 		id = newID("ag")
 		if !opts.DryRun {
-			a := &domain.Agent{ID: id, Name: af.Name, TeamID: teamID, CreatedAt: af.CreatedAt, UpdatedAt: af.UpdatedAt}
+			a := &domain.Agent{
+				ID: id, Name: af.Name, TeamID: teamID,
+				Model: af.Model, Runtime: af.Runtime,
+				CreatedAt: af.CreatedAt, UpdatedAt: af.UpdatedAt,
+			}
 			if err := ds.CreateAgent(ctx, a); err != nil {
 				return "", false, err
 			}
@@ -423,7 +427,10 @@ func importAgent(ctx context.Context, ds DataSource, af AgentFile, teamID string
 		id = existing.ID
 		updated = true
 		if !opts.DryRun {
-			if err := ds.UpdateAgent(ctx, id, af.Name, teamID); err != nil {
+			if err := ds.UpdateAgent(ctx, &domain.Agent{
+				ID: id, Name: af.Name, TeamID: teamID,
+				Model: af.Model, Runtime: af.Runtime,
+			}); err != nil {
 				return "", false, err
 			}
 		}
