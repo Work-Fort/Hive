@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Maintainer: Kaz Walker <me@kazatron.com>
+pkgname=hive
+pkgver=0.0.0
+pkgrel=1
+pkgdesc='Agent provisioning daemon for MCP-based development teams'
+arch=('x86_64' 'aarch64')
+url='https://github.com/Work-Fort/Hive'
+license=('GPL-3.0-or-later')
+makedepends=('go')
+
+source=("${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "Hive-${pkgver}"
+    export CGO_ENABLED=0
+    go build -trimpath \
+        -ldflags "-s -w -X github.com/Work-Fort/Hive/cmd.Version=v${pkgver}" \
+        -o hive
+}
+
+package() {
+    cd "Hive-${pkgver}"
+    install -Dm755 hive "${pkgdir}/usr/bin/hive"
+    install -Dm644 dist/hive.system.service "${pkgdir}/usr/lib/systemd/user/hive.service"
+}

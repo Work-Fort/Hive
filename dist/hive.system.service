@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[Unit]
+Description=Hive agent provisioning daemon
+Documentation=https://github.com/Work-Fort/Hive
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hive daemon
+Restart=on-failure
+RestartSec=5s
+
+# Load environment overrides (e.g. HIVE_PASSPORT_URL).
+# Create the file with:  install -m 600 /dev/null ~/.config/hive/env
+EnvironmentFile=-%h/.config/hive/env
+Environment=HIVE_LOG_LEVEL=info
+
+[Install]
+WantedBy=default.target

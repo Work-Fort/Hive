@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#MISE description="Build a static release binary"
+#MISE sources=["**/*.go", "**/*.sql", "go.mod", "go.sum"]
+#MISE outputs=["build/hive"]
+set -euo pipefail
+
+mkdir -p build
+: ${VERSION:=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")}
+CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X github.com/Work-Fort/Hive/cmd.Version=${VERSION}" -o build/hive .
+echo "Release build complete"
