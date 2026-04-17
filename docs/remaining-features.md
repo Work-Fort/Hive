@@ -96,3 +96,11 @@ OpenAPI 3.1 spec generated at runtime by Huma v2. All REST endpoints migrate
 from raw `http.HandlerFunc` to Huma typed handlers with `doc:` tags. Spec
 served at `/openapi`, interactive docs at `/docs`. Enables automatic API
 client generation.
+
+---
+
+## Bugs / Follow-ups
+
+- [ ] **Parent `build` mise task deleted in working tree** — `hive/lead/.mise/tasks/build` was removed in an uncommitted change. `mise run build:release` and `build:dev` still work, but plain `mise run build` doesn't. Either restore the parent task (delegating to `build:release` by default) or commit the deletion with a note in the mise.toml description explaining that only `build:release` / `build:dev` are the entry points.
+- [ ] **No standard `/ui/health` manifest** — Hive does not serve a `/ui/health` endpoint. Pylon discovers it as `connected:true` but with empty `name`/`label`, which means `pylon.ServiceByName("hive")` returns nothing and the service shows as an unnamed dot in Scope's top nav. Consumers have to configure Hive's URL directly. Add a manifest endpoint returning `{name: "hive", label: "Hive", route: "/hive", ...}` so Pylon discovery is usable.
+- [ ] **`$schema` response URLs use `https` on an `http`-only service** — Hive's Huma-generated responses include `"$schema": "https://hive.nexus:17000/schemas/..."` even when the service is serving plain HTTP. Likely a Huma config that needs a scheme override or a `X-Forwarded-Proto`-aware base URL. Non-blocking but confusing for clients that try to fetch the schema.
