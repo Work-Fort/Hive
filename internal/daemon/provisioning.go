@@ -32,6 +32,11 @@ func NewProvisioningService(store domain.Store, health *HealthService, maxRoleDe
 
 // Resolve builds the complete provisioning response for an agent.
 func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*domain.ProvisioningResponse, error) {
+	agent, err := ps.store.GetAgent(ctx, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("get agent: %w", err)
+	}
+
 	agentRoles, err := ps.store.GetAgentRoles(ctx, agentID)
 	if err != nil {
 		return nil, fmt.Errorf("get agent roles: %w", err)
@@ -79,6 +84,11 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 	}
 
 	return &domain.ProvisioningResponse{
+		Agent: domain.AgentIdentity{
+			ID:     agent.ID,
+			Name:   agent.Name,
+			TeamID: agent.TeamID,
+		},
 		Roles:  groups,
 		Memory: memory,
 	}, nil

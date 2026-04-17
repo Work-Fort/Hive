@@ -102,8 +102,17 @@ type AgentPermission struct {
 // ProvisioningResponse is the hierarchical response returned when an agent
 // requests its provisioning data.
 type ProvisioningResponse struct {
+	Agent  AgentIdentity           `json:"agent"`
 	Roles  []ProvisioningRoleGroup `json:"roles"`
 	Memory []Document              `json:"memory"`
+}
+
+// AgentIdentity is the subset of agent fields returned in a provisioning
+// response so an agent can learn its own identity from a single call.
+type AgentIdentity struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	TeamID string `json:"team_id"`
 }
 
 // ProvisioningRoleGroup is a single role assignment with its full

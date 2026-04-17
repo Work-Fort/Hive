@@ -100,6 +100,48 @@ func seedMemory(t *testing.T, ctx context.Context, store domain.Store, id, title
 	}
 }
 
+func TestResolve_IncludesAgentIdentity(t *testing.T) {
+	ctx := context.Background()
+	store, ps := testSetup(t, 10)
+
+	teamID := seedTeam(t, ctx, store, "alpha")
+	agentID := seedAgent(t, ctx, store, "worker-01", teamID)
+	roleID := seedRole(t, ctx, store, "worker", "")
+	seedDoc(t, ctx, store, "doc-1", "Instructions", "do work", roleID)
+
+	err := store.SetAgentRoles(ctx, agentID, []domain.AgentRole{
+		{AgentID: agentID, RoleID: roleID, Priority: 1},
+	})
+	if err != nil {
+		t.Fatalf("set agent roles: %v", err)
+	}
+
+	resp, err := ps.Resolve(ctx, agentID)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	if resp.Agent.ID != agentID {
+		t.Errorf("Agent.ID = %q, want %q", resp.Agent.ID, agentID)
+	}
+	if resp.Agent.Name != "worker-01" {
+		t.Errorf("Agent.Name = %q, want %q", resp.Agent.Name, "worker-01")
+	}
+	if resp.Agent.TeamID != teamID {
+		t.Errorf("Agent.TeamID = %q, want %q", resp.Agent.TeamID, teamID)
+	}
+}
+
+func TestResolve_UnknownAgent_ReturnsError(t *testing.T) {
+	ctx := context.Background()
+	_, ps := testSetup(t, 10)
+
+	_, err := ps.Resolve(ctx, "agent-does-not-exist")
+	if err == nil {
+		t.Fatalf("expected error for unknown agent, got nil")
+	}
+}
+
 func TestResolve_SingleRole_NoInheritance(t *testing.T) {
 	ctx := context.Background()
 	store, ps := testSetup(t, 10)
