@@ -155,6 +155,33 @@ func TestAgent_CurrentAssignment_Roundtrip(t *testing.T) {
 	}
 }
 
+func TestAgent_CurrentAssignment_AllOrNothingRejected(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+
+	// Insert with partial assignment (role set, others empty) should fail.
+	partial := &domain.Agent{
+		ID: "a_001", Name: "alice", TeamID: "t_001",
+		CurrentRole: "developer", // others deliberately left zero
+	}
+	if err := store.CreateAgent(ctx, partial); err == nil {
+		t.Fatalf("CreateAgent with partial current_* unexpectedly succeeded")
+	}
+
+	// Fully free agent succeeds.
+	free := &domain.Agent{ID: "a_002", Name: "bob", TeamID: "t_001"}
+	if err := store.CreateAgent(ctx, free); err != nil {
+		t.Fatalf("CreateAgent with free agent failed: %v", err)
+	}
+
+	// Now try to update it to a partial state — should fail.
+	free.CurrentWorkflowID = "wf-xyz"
+	if err := store.UpdateAgent(ctx, free); err == nil {
+		t.Fatalf("UpdateAgent with partial current_* unexpectedly succeeded")
+	}
+}
+
 func TestListAgentsByTeam(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
