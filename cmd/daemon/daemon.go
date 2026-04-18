@@ -53,6 +53,8 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&db, "db", "", "Database DSN (postgres://... or SQLite file path)")
 	cmd.Flags().StringVar(&passportURL, "passport-url", "http://passport.nexus:3000",
 		"Passport auth service URL")
+	cmd.Flags().Duration("sweeper-interval", 30*time.Second, "Lease sweeper interval")
+	viper.BindPFlag("sweeper-interval", cmd.Flags().Lookup("sweeper-interval")) //nolint:errcheck
 
 	return cmd
 }
@@ -86,6 +88,11 @@ func run(bind string, port int, db, passportURL string) error {
 	// Provisioning
 	maxRoleDepth := viper.GetInt("max-role-depth")
 	provisioning := hiveDaemon.NewProvisioningService(store, health, maxRoleDepth)
+
+	sweeperInterval := viper.GetDuration("sweeper-interval")
+	if sweeperInterval <= 0 {
+		sweeperInterval = 30 * time.Second
+	}
 
 	// Boot-time check: role depth audit
 	health.RegisterBootCheck("role_depth_audit", func(ctx context.Context) hiveDaemon.CheckResult {
@@ -124,6 +131,9 @@ func run(bind string, port int, db, passportURL string) error {
 	healthCtx, healthCancel := context.WithCancel(context.Background())
 	defer healthCancel()
 	go health.StartPeriodic(healthCtx, 30*time.Second)
+
+	sweeper := hiveDaemon.NewSweeperService(store)
+	go sweeper.Start(healthCtx, sweeperInterval)
 
 	select {
 	case sig := <-sigCh:
