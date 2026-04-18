@@ -51,11 +51,20 @@ type Role struct {
 // descriptive (tells an operator which adjutant image is deployed) rather
 // than prescriptive (Hive does not spawn VMs).
 type Agent struct {
-	ID        string
-	Name      string
-	TeamID    string
-	Model     string // e.g. "claude-sonnet-4-6", "claude-opus-4-7"
-	Runtime   string // e.g. "claude-cli", "go-adk"
+	ID      string
+	Name    string
+	TeamID  string
+	Model   string // e.g. "claude-sonnet-4-6", "claude-opus-4-7"
+	Runtime string // e.g. "claude-cli", "go-adk"
+
+	// Current assignment — all-or-nothing. When the agent is free, all four
+	// are zero values. When claimed by a workflow, all four are set.
+	// See docs/2026-04-18-agent-assignment-schema.md for the invariant.
+	CurrentRole       string
+	CurrentProject    string
+	CurrentWorkflowID string
+	LeaseExpiresAt    time.Time
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
