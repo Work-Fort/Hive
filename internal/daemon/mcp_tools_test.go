@@ -558,7 +558,9 @@ func TestUpdateTask_InvalidStatus_MCP(t *testing.T) {
 	if result.IsError {
 		t.Fatalf("create task: %s", resultText(t, result))
 	}
-	var created struct{ ID string `json:"id"` }
+	var created struct {
+		ID string `json:"id"`
+	}
 	unmarshalResult(t, result, &created)
 
 	// Try to update with invalid status
@@ -586,7 +588,9 @@ func TestUpdateTask_ValidStatus_MCP(t *testing.T) {
 	if result.IsError {
 		t.Fatalf("create task: %s", resultText(t, result))
 	}
-	var created struct{ ID string `json:"id"` }
+	var created struct {
+		ID string `json:"id"`
+	}
 	unmarshalResult(t, result, &created)
 
 	updateHandler := makeUpdateTask(env.deps)

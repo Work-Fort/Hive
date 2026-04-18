@@ -18,7 +18,7 @@ type FieldDef struct {
 
 // EntitySchema defines validation rules for an entity type.
 type EntitySchema struct {
-	Name   string     // "team", "role", "agent", "document", "task", "permission"
+	Name   string // "team", "role", "agent", "document", "task", "permission"
 	Fields []FieldDef
 }
 

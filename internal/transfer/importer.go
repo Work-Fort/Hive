@@ -545,7 +545,7 @@ func importTask(ctx context.Context, ds DataSource, tf TaskFile, teamID, agentID
 		t := &domain.Task{
 			ID: newID("tk"), TeamID: teamID, AgentID: agentID,
 			Title: tf.Title, Description: tf.Description,
-			Status: domain.TaskStatus(tf.Status),
+			Status:    domain.TaskStatus(tf.Status),
 			CreatedAt: tf.CreatedAt, UpdatedAt: tf.UpdatedAt,
 		}
 		if err := ds.CreateTask(ctx, t); err != nil {

@@ -261,7 +261,7 @@ func (r *restDataSource) ListTeamTasks(ctx context.Context, teamID string) ([]*d
 		out[i] = &domain.Task{
 			ID: tk.ID, TeamID: tk.TeamID, AgentID: tk.AgentID,
 			Title: tk.Title, Description: tk.Description,
-			Status: domain.TaskStatus(tk.Status),
+			Status:    domain.TaskStatus(tk.Status),
 			CreatedAt: tk.CreatedAt, UpdatedAt: tk.UpdatedAt,
 		}
 	}
@@ -297,7 +297,7 @@ func (r *restDataSource) LookupTaskByTeamAndTitle(ctx context.Context, teamID, t
 			return &domain.Task{
 				ID: tk.ID, TeamID: tk.TeamID, AgentID: tk.AgentID,
 				Title: tk.Title, Description: tk.Description,
-				Status: domain.TaskStatus(tk.Status),
+				Status:    domain.TaskStatus(tk.Status),
 				CreatedAt: tk.CreatedAt, UpdatedAt: tk.UpdatedAt,
 			}, nil
 		}
