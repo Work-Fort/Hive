@@ -2,7 +2,7 @@
 type: plan
 step: "4"
 title: "Agent pool — get_provisioning honors current assignment"
-status: pending
+status: approved
 assessment_status: complete
 provenance:
   source: roadmap
@@ -10,7 +10,7 @@ provenance:
   roadmap_step: "4"
 dates:
   created: "2026-04-17"
-  approved: null
+  approved: "2026-04-18"
   completed: null
 related_plans:
   - 2026-04-17-agent-pool-01-schema.md
