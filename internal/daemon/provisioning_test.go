@@ -4,7 +4,9 @@ package daemon_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Work-Fort/Hive/internal/daemon"
 	"github.com/Work-Fort/Hive/internal/domain"
@@ -433,6 +435,84 @@ func TestResolve_SharedAncestor_NoDedupe(t *testing.T) {
 		if g.Chain[1].Role != "root" {
 			t.Errorf("group[%d] chain[1].Role = %q, want %q", i, g.Chain[1].Role, "root")
 		}
+	}
+}
+
+func TestResolve_ClaimedAgent_OverridesPersistentRoles(t *testing.T) {
+	ctx := context.Background()
+	store, ps := testSetup(t, 10)
+
+	teamID := seedTeam(t, ctx, store, "alpha")
+	agentID := seedAgent(t, ctx, store, "worker-01", teamID)
+
+	// Persistent role-set: generic "developer".
+	devRoleID := seedRole(t, ctx, store, "developer", "")
+	seedDoc(t, ctx, store, "doc-dev", "Dev", "persistent dev content", devRoleID)
+	store.SetAgentRoles(ctx, agentID, []domain.AgentRole{
+		{AgentID: agentID, RoleID: devRoleID, Priority: 1},
+	})
+
+	// Persisted agent memory — must survive the role-set override.
+	seedMemory(t, ctx, store, "mem-1", "Persistent Note", "persistent memory body", agentID)
+
+	// Also a "reviewer" role exists with its own document.
+	revRoleID := seedRole(t, ctx, store, "reviewer", "")
+	seedDoc(t, ctx, store, "doc-rev", "Rev", "reviewer content", revRoleID)
+
+	// Claim the agent as reviewer for flow.
+	expires := time.Now().UTC().Add(2 * time.Minute)
+	_, err := store.ClaimAgent(ctx, "reviewer", "flow", "wf-117", expires)
+	if err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+
+	resp, err := ps.Resolve(ctx, agentID)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	if resp.CurrentAssignment == nil {
+		t.Fatalf("expected CurrentAssignment populated")
+	}
+	if resp.CurrentAssignment.Role != "reviewer" {
+		t.Errorf("Role = %q, want reviewer", resp.CurrentAssignment.Role)
+	}
+	if resp.CurrentAssignment.Project != "flow" {
+		t.Errorf("Project = %q, want flow", resp.CurrentAssignment.Project)
+	}
+	if resp.CurrentAssignment.WorkflowID != "wf-117" {
+		t.Errorf("WorkflowID = %q, want wf-117", resp.CurrentAssignment.WorkflowID)
+	}
+
+	// Should NOT include the persistent developer role; should include
+	// the reviewer chain instead.
+	if len(resp.Roles) != 1 {
+		t.Fatalf("expected exactly 1 role group, got %d", len(resp.Roles))
+	}
+	if resp.Roles[0].Chain[0].Role != "reviewer" {
+		t.Errorf("expected reviewer chain, got %q", resp.Roles[0].Chain[0].Role)
+	}
+
+	// Should include a project context memory doc.
+	var projectDoc *domain.Document
+	var persistentDoc *domain.Document
+	for i, d := range resp.Memory {
+		if d.Kind == domain.DocumentKindMemory && d.Title == "Current Project" {
+			projectDoc = &resp.Memory[i]
+		}
+		if d.ID == "mem-1" {
+			persistentDoc = &resp.Memory[i]
+		}
+	}
+	if projectDoc == nil {
+		t.Errorf("expected synthesized 'Current Project' memory doc; memory = %+v", resp.Memory)
+	} else if !strings.Contains(projectDoc.Content, "flow") {
+		t.Errorf("project doc content does not mention flow: %q", projectDoc.Content)
+	}
+	// Memory additivity: persisted memory must NOT be replaced by the
+	// synthetic project doc — both should be present.
+	if persistentDoc == nil {
+		t.Errorf("expected persisted memory doc 'mem-1' alongside the synthetic project doc; memory = %+v", resp.Memory)
 	}
 }
 
