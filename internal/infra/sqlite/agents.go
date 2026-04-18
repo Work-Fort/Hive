@@ -11,16 +11,52 @@ import (
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
-const agentCols = "id, name, team_id, model, runtime, created_at, updated_at"
+const agentCols = "id, name, team_id, model, runtime, current_role, current_project, current_workflow_id, lease_expires_at, created_at, updated_at"
 
 func scanAgent(row interface {
 	Scan(dest ...any) error
 }) (*domain.Agent, error) {
 	var a domain.Agent
-	if err := row.Scan(&a.ID, &a.Name, &a.TeamID, &a.Model, &a.Runtime, &a.CreatedAt, &a.UpdatedAt); err != nil {
+	var role, project, workflowID sql.NullString
+	var leaseExpires sql.NullTime
+	if err := row.Scan(
+		&a.ID, &a.Name, &a.TeamID, &a.Model, &a.Runtime,
+		&role, &project, &workflowID, &leaseExpires,
+		&a.CreatedAt, &a.UpdatedAt,
+	); err != nil {
 		return nil, err
 	}
+	if role.Valid {
+		a.CurrentRole = role.String
+	}
+	if project.Valid {
+		a.CurrentProject = project.String
+	}
+	if workflowID.Valid {
+		a.CurrentWorkflowID = workflowID.String
+	}
+	if leaseExpires.Valid {
+		a.LeaseExpiresAt = leaseExpires.Time.UTC()
+	}
 	return &a, nil
+}
+
+func toNullable(a *domain.Agent) (any, any, any, any) {
+	var role, project, workflowID any
+	var leaseExpires any
+	if a.CurrentRole != "" {
+		role = a.CurrentRole
+	}
+	if a.CurrentProject != "" {
+		project = a.CurrentProject
+	}
+	if a.CurrentWorkflowID != "" {
+		workflowID = a.CurrentWorkflowID
+	}
+	if !a.LeaseExpiresAt.IsZero() {
+		leaseExpires = a.LeaseExpiresAt.UTC()
+	}
+	return role, project, workflowID, leaseExpires
 }
 
 func (s *Store) CreateAgent(ctx context.Context, a *domain.Agent) error {
@@ -31,9 +67,10 @@ func (s *Store) CreateAgent(ctx context.Context, a *domain.Agent) error {
 	if a.UpdatedAt.IsZero() {
 		a.UpdatedAt = now
 	}
+	role, project, workflowID, leaseExpires := toNullable(a)
 	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO agents ("+agentCols+") VALUES (?, ?, ?, ?, ?, ?, ?)",
-		a.ID, a.Name, a.TeamID, a.Model, a.Runtime, a.CreatedAt.UTC(), a.UpdatedAt.UTC())
+		"INSERT INTO agents ("+agentCols+") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		a.ID, a.Name, a.TeamID, a.Model, a.Runtime, role, project, workflowID, leaseExpires, a.CreatedAt.UTC(), a.UpdatedAt.UTC())
 	if err != nil {
 		if isUniqueViolation(err) {
 			return fmt.Errorf("%w: agent %q", domain.ErrAlreadyExists, a.Name)
@@ -83,9 +120,10 @@ func (s *Store) ListAgents(ctx context.Context, teamID string) ([]*domain.Agent,
 }
 
 func (s *Store) UpdateAgent(ctx context.Context, a *domain.Agent) error {
+	role, project, workflowID, leaseExpires := toNullable(a)
 	res, err := s.db.ExecContext(ctx,
-		"UPDATE agents SET name = ?, team_id = ?, model = ?, runtime = ?, updated_at = datetime('now') WHERE id = ?",
-		a.Name, a.TeamID, a.Model, a.Runtime, a.ID)
+		"UPDATE agents SET name = ?, team_id = ?, model = ?, runtime = ?, current_role = ?, current_project = ?, current_workflow_id = ?, lease_expires_at = ?, updated_at = datetime('now') WHERE id = ?",
+		a.Name, a.TeamID, a.Model, a.Runtime, role, project, workflowID, leaseExpires, a.ID)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return fmt.Errorf("%w: agent %q", domain.ErrAlreadyExists, a.Name)
