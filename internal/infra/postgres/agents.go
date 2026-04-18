@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Work-Fort/Hive/internal/domain"
@@ -220,4 +221,108 @@ func (s *Store) LookupAgentByName(ctx context.Context, name string) (*domain.Age
 		return nil, fmt.Errorf("lookup agent by name: %w", err)
 	}
 	return a, nil
+}
+
+func (s *Store) ClaimAgent(ctx context.Context, role, project, workflowID string, leaseExpiresAt time.Time) (*domain.Agent, error) {
+	row := s.db.QueryRowContext(ctx,
+		"UPDATE agents SET current_role = $1, current_project = $2, current_workflow_id = $3, lease_expires_at = $4, updated_at = NOW() WHERE id = (SELECT id FROM agents WHERE current_workflow_id IS NULL ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING "+agentCols,
+		role, project, workflowID, leaseExpiresAt.UTC())
+	agent, err := scanAgent(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrPoolExhausted
+	}
+	if err != nil {
+		return nil, fmt.Errorf("claim agent: %w", err)
+	}
+	return agent, nil
+}
+
+func (s *Store) ReleaseAgent(ctx context.Context, agentID, workflowID string) error {
+	res, err := s.db.ExecContext(ctx,
+		"UPDATE agents SET current_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE id = $1 AND current_workflow_id = $2",
+		agentID, workflowID)
+	if err != nil {
+		return fmt.Errorf("release agent: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		if _, err := s.GetAgent(ctx, agentID); errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrNotFound
+		}
+		return domain.ErrWorkflowMismatch
+	}
+	return nil
+}
+
+func (s *Store) RenewAgentLease(ctx context.Context, agentID, workflowID string, leaseExpiresAt time.Time) error {
+	res, err := s.db.ExecContext(ctx,
+		"UPDATE agents SET lease_expires_at = $1, updated_at = NOW() WHERE id = $2 AND current_workflow_id = $3",
+		leaseExpiresAt.UTC(), agentID, workflowID)
+	if err != nil {
+		return fmt.Errorf("renew agent lease: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		if _, err := s.GetAgent(ctx, agentID); errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrNotFound
+		}
+		return domain.ErrWorkflowMismatch
+	}
+	return nil
+}
+
+func (s *Store) ListAgentsByAssignment(ctx context.Context, f domain.AgentAssignmentFilter) ([]*domain.Agent, error) {
+	var where []string
+	var args []any
+	n := 1
+	if f.TeamID != "" {
+		where = append(where, fmt.Sprintf("team_id = $%d", n))
+		args = append(args, f.TeamID)
+		n++
+	}
+	if f.Assigned != nil {
+		if *f.Assigned {
+			where = append(where, "current_workflow_id IS NOT NULL")
+		} else {
+			where = append(where, "current_workflow_id IS NULL")
+		}
+	}
+	if f.WorkflowID != "" {
+		where = append(where, fmt.Sprintf("current_workflow_id = $%d", n))
+		args = append(args, f.WorkflowID)
+		n++
+	}
+	if f.Role != "" {
+		where = append(where, fmt.Sprintf("current_role = $%d", n))
+		args = append(args, f.Role)
+		n++
+	}
+	if f.Project != "" {
+		where = append(where, fmt.Sprintf("current_project = $%d", n))
+		args = append(args, f.Project)
+		n++
+	}
+	_ = n
+
+	q := "SELECT " + agentCols + " FROM agents"
+	if len(where) > 0 {
+		q += " WHERE " + strings.Join(where, " AND ")
+	}
+	q += " ORDER BY name"
+
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list agents by assignment: %w", err)
+	}
+	defer rows.Close()
+
+	var agents []*domain.Agent
+	for rows.Next() {
+		a, err := scanAgent(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan agent: %w", err)
+		}
+		agents = append(agents, a)
+	}
+	return agents, rows.Err()
 }
