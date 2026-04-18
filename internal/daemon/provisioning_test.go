@@ -516,6 +516,30 @@ func TestResolve_ClaimedAgent_OverridesPersistentRoles(t *testing.T) {
 	}
 }
 
+func TestResolve_ClaimedAgent_UnknownRoleName_StillReturnsAssignment(t *testing.T) {
+	ctx := context.Background()
+	store, ps := testSetup(t, 10)
+	teamID := seedTeam(t, ctx, store, "alpha")
+	agentID := seedAgent(t, ctx, store, "worker-01", teamID)
+
+	// Claim with a role name that does NOT exist in the roles table.
+	expires := time.Now().UTC().Add(time.Minute)
+	if _, err := store.ClaimAgent(ctx, "phantom-role", "flow", "wf-1", expires); err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+
+	resp, err := ps.Resolve(ctx, agentID)
+	if err != nil {
+		t.Fatalf("resolve should not error on unknown role: %v", err)
+	}
+	if resp.CurrentAssignment == nil {
+		t.Fatalf("expected CurrentAssignment populated")
+	}
+	if len(resp.Roles) != 0 {
+		t.Errorf("expected no role groups, got %d", len(resp.Roles))
+	}
+}
+
 func TestResolve_FreeAgent_NoCurrentAssignment(t *testing.T) {
 	ctx := context.Background()
 	store, ps := testSetup(t, 10)

@@ -3,6 +3,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -52,27 +53,34 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 
 		role, err := ps.store.LookupRoleByName(ctx, agent.CurrentRole)
 		if err != nil {
-			return nil, fmt.Errorf("lookup current role %q: %w", agent.CurrentRole, err)
-		}
-		chain, err := ps.store.GetRoleChain(ctx, role.ID, ps.maxRoleDepth)
-		if err != nil {
-			return nil, fmt.Errorf("get current role chain: %w", err)
-		}
-		entries := make([]domain.ProvisioningChainEntry, 0, len(chain))
-		for _, r := range chain {
-			docs, err := ps.store.ListRoleDocuments(ctx, r.ID)
+			if errors.Is(err, domain.ErrNotFound) {
+				log.Warn("provisioning: claimed agent has unknown current_role",
+					"agent_id", agent.ID, "current_role", agent.CurrentRole)
+				// groups stays empty; fall through to memory synthesis.
+			} else {
+				return nil, fmt.Errorf("lookup current role %q: %w", agent.CurrentRole, err)
+			}
+		} else {
+			chain, err := ps.store.GetRoleChain(ctx, role.ID, ps.maxRoleDepth)
 			if err != nil {
-				return nil, fmt.Errorf("list documents for role %s: %w", r.ID, err)
+				return nil, fmt.Errorf("get current role chain: %w", err)
 			}
-			docSlice := make([]domain.Document, len(docs))
-			for i, d := range docs {
-				docSlice[i] = *d
+			entries := make([]domain.ProvisioningChainEntry, 0, len(chain))
+			for _, r := range chain {
+				docs, err := ps.store.ListRoleDocuments(ctx, r.ID)
+				if err != nil {
+					return nil, fmt.Errorf("list documents for role %s: %w", r.ID, err)
+				}
+				docSlice := make([]domain.Document, len(docs))
+				for i, d := range docs {
+					docSlice[i] = *d
+				}
+				entries = append(entries, domain.ProvisioningChainEntry{
+					Role: r.Name, Documents: docSlice,
+				})
 			}
-			entries = append(entries, domain.ProvisioningChainEntry{
-				Role: r.Name, Documents: docSlice,
-			})
+			groups = []domain.ProvisioningRoleGroup{{Priority: 0, Chain: entries}}
 		}
-		groups = []domain.ProvisioningRoleGroup{{Priority: 0, Chain: entries}}
 
 		now := time.Now().UTC()
 		memory = append(memory, domain.Document{
