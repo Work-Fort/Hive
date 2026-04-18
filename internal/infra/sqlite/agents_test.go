@@ -347,6 +347,41 @@ func TestSweepExpiredLeases(t *testing.T) {
 	}
 }
 
+func TestSweepRaceWithRenewLosesGracefully(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001"})
+
+	// Claim with a TTL that has already expired.
+	past := time.Now().UTC().Add(-time.Second)
+	if _, err := store.ClaimAgent(ctx, "developer", "flow", "wf-1", past); err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+
+	// Sweeper clears the expired row.
+	released, err := store.SweepExpiredLeases(ctx, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("sweep: %v", err)
+	}
+	if len(released) != 1 || released[0].ID != "a_001" {
+		t.Fatalf("expected a_001 released, got %+v", released)
+	}
+
+	// Renew arrives after the sweep — must NOT silently re-claim. The CAS
+	// on current_workflow_id no longer matches because the row was cleared.
+	err = store.RenewAgentLease(ctx, "a_001", "wf-1", time.Now().UTC().Add(time.Hour))
+	if !errors.Is(err, domain.ErrWorkflowMismatch) {
+		t.Fatalf("expected ErrWorkflowMismatch, got %v", err)
+	}
+
+	// Confirm the agent really is free — not silently re-leased.
+	got, _ := store.GetAgent(ctx, "a_001")
+	if got.CurrentWorkflowID != "" {
+		t.Errorf("agent still claimed after sweep+renew race: %+v", got)
+	}
+}
+
 func TestListAgentsByAssignment_FreeAndClaimed(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
