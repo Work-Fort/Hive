@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 // RoleAssignment is the input type for SetAgentRoles.
@@ -79,4 +80,49 @@ func (c *Client) SetAgentRoles(ctx context.Context, agentID string, roles []Role
 	body := map[string]any{"roles": roles}
 	var out []AgentRole
 	return out, c.do(ctx, http.MethodPut, "/v1/agents/"+agentID+"/roles", body, &out)
+}
+
+// ClaimAgent calls POST /v1/agents/claim.
+func (c *Client) ClaimAgent(ctx context.Context, role, project, workflowID string, ttlSeconds int) (*Agent, error) {
+	body := map[string]any{
+		"role": role, "project": project,
+		"workflow_id": workflowID, "lease_ttl_seconds": ttlSeconds,
+	}
+	var out Agent
+	return &out, c.do(ctx, http.MethodPost, "/v1/agents/claim", body, &out)
+}
+
+// ReleaseAgent calls POST /v1/agents/{id}/release.
+func (c *Client) ReleaseAgent(ctx context.Context, id, workflowID string) error {
+	body := map[string]string{"workflow_id": workflowID}
+	return c.do(ctx, http.MethodPost, "/v1/agents/"+id+"/release", body, nil)
+}
+
+// RenewAgentLease calls POST /v1/agents/{id}/renew.
+func (c *Client) RenewAgentLease(ctx context.Context, id, workflowID string, ttlSeconds int) error {
+	body := map[string]any{"workflow_id": workflowID, "lease_ttl_seconds": ttlSeconds}
+	return c.do(ctx, http.MethodPost, "/v1/agents/"+id+"/renew", body, nil)
+}
+
+// ListAgentsByAssignment lists agents with optional pool filters. Pass nil for
+// assigned to omit that filter; pass empty strings to omit other filters.
+func (c *Client) ListAgentsByAssignment(ctx context.Context, teamID string, assigned *bool, workflowID, role, project string) ([]Agent, error) {
+	params := url.Values{}
+	if teamID != "" {
+		params.Set("team_id", teamID)
+	}
+	if assigned != nil {
+		params.Set("assigned", strconv.FormatBool(*assigned))
+	}
+	if workflowID != "" {
+		params.Set("workflow_id", workflowID)
+	}
+	if role != "" {
+		params.Set("role", role)
+	}
+	if project != "" {
+		params.Set("project", project)
+	}
+	var out []Agent
+	return out, c.doWithQuery(ctx, http.MethodGet, "/v1/agents", params, &out)
 }

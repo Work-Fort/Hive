@@ -22,13 +22,17 @@ type Role struct {
 
 // Agent is a provisioned identity belonging to one team.
 type Agent struct {
-	ID        string    `json:"ID"`
-	Name      string    `json:"Name"`
-	TeamID    string    `json:"TeamID"`
-	Model     string    `json:"Model,omitempty"`
-	Runtime   string    `json:"Runtime,omitempty"`
-	CreatedAt time.Time `json:"CreatedAt"`
-	UpdatedAt time.Time `json:"UpdatedAt"`
+	ID                string    `json:"ID"`
+	Name              string    `json:"Name"`
+	TeamID            string    `json:"TeamID"`
+	Model             string    `json:"Model,omitempty"`
+	Runtime           string    `json:"Runtime,omitempty"`
+	CurrentRole       string    `json:"CurrentRole,omitempty"`
+	CurrentProject    string    `json:"CurrentProject,omitempty"`
+	CurrentWorkflowID string    `json:"CurrentWorkflowID,omitempty"`
+	LeaseExpiresAt    time.Time `json:"LeaseExpiresAt,omitempty"`
+	CreatedAt         time.Time `json:"CreatedAt"`
+	UpdatedAt         time.Time `json:"UpdatedAt"`
 }
 
 // AgentRole links an agent to a role with a priority ordering.
