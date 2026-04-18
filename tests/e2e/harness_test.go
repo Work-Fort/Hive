@@ -98,6 +98,7 @@ func newHarness(t *testing.T) *Harness {
 		"--db", dbPath,
 		"--passport-url", "http://"+stubAddr,
 		"--log-level", "disabled",
+		"--sweeper-interval", "200ms",
 	)
 	// XDG env vars scope config/state to our temp dirs.
 	cmd.Env = append(os.Environ(),
