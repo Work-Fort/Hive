@@ -68,10 +68,11 @@ func TestExportImportRoundTrip(t *testing.T) {
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
 
+	exportToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--passport-token", testPassportToken,
+		"--passport-token", exportToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -117,10 +118,11 @@ func TestExportImportDryRun(t *testing.T) {
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
 
+	exportToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--passport-token", testPassportToken,
+		"--passport-token", exportToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -163,11 +165,12 @@ func TestImportConflictAndUpsert(t *testing.T) {
 
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
+	conflictToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--passport-token", testPassportToken,
+		"--passport-token", conflictToken,
 		"--log-level", "disabled",
 	)
 	exportOut, err := exportCmd.CombinedOutput()
@@ -180,7 +183,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 	importConflict := exec.Command(hiveBin, "import", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--passport-token", testPassportToken,
+		"--passport-token", conflictToken,
 		"--log-level", "disabled",
 	)
 	conflictOut, err := importConflict.CombinedOutput()
@@ -193,7 +196,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 	importUpsert := exec.Command(hiveBin, "import", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
-		"--passport-token", testPassportToken,
+		"--passport-token", conflictToken,
 		"--upsert",
 		"--log-level", "disabled",
 	)

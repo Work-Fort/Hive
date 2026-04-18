@@ -41,14 +41,5 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Obtain a Passport JWT for E2E tests. JWTs are validated locally via
-	// JWKS (no per-key rate limit, unlike API keys).
-	token, err := obtainPassportJWT()
-	if err != nil {
-		os.Stderr.WriteString("FATAL: failed to obtain Passport JWT: " + err.Error() + "\n")
-		os.Exit(1)
-	}
-	testPassportToken = token
-
 	os.Exit(m.Run())
 }
