@@ -17,7 +17,7 @@ func TestPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}
-	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000001", "perm-agent", team.ID)
+	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000001", "perm-agent", team.ID, "", "")
 	if err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}

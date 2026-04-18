@@ -48,7 +48,7 @@ type AgentWithRoles struct {
 // Document holds markdown content attached to a role or an agent.
 type Document struct {
 	ID        string    `json:"ID"`
-	Kind      string    `json:"Kind"`    // "role" or "memory"
+	Kind      string    `json:"Kind"` // "role" or "memory"
 	Title     string    `json:"Title"`
 	Content   string    `json:"Content"`
 	RoleID    string    `json:"RoleID"`  // set when Kind == "role"
@@ -64,7 +64,8 @@ type Task struct {
 	AgentID     string    `json:"AgentID"` // empty if unassigned
 	Title       string    `json:"Title"`
 	Description string    `json:"Description"`
-	Status      string    `json:"Status"` // "pending", "in_progress", "completed"
+	Status      string    `json:"Status"`                // "pending", "in_progress", "completed"
+	FlowTaskRef string    `json:"FlowTaskRef,omitempty"` // free-form Flow workflow task reference
 	CreatedAt   time.Time `json:"CreatedAt"`
 	UpdatedAt   time.Time `json:"UpdatedAt"`
 }

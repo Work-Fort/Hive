@@ -17,7 +17,7 @@ func TestTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}
-	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000003", "task-agent", team.ID)
+	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000003", "task-agent", team.ID, "", "")
 	if err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestAgentDeleteBlockedByTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}
-	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000004", "block-agent", team.ID)
+	agent, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000004", "block-agent", team.ID, "", "")
 	if err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}
@@ -113,6 +113,44 @@ func TestAgentDeleteBlockedByTask(t *testing.T) {
 	err = c.DeleteAgent(ctx(), agent.ID)
 	if !errors.Is(err, client.ErrConflict) {
 		t.Errorf("delete agent with task: expected ErrConflict, got %v", err)
+	}
+}
+
+func TestTask_FlowTaskRef_RoundTrip_REST(t *testing.T) {
+	h := newHarness(t)
+	c := h.Client
+
+	team, err := c.CreateTeam(ctx(), "flow-ref-team")
+	if err != nil {
+		t.Fatalf("CreateTeam: %v", err)
+	}
+
+	created, err := c.CreateTask(ctx(), client.CreateTaskInput{
+		TeamID:      team.ID,
+		Title:       "t",
+		FlowTaskRef: "flow-task-117",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+	if created.FlowTaskRef != "flow-task-117" {
+		t.Errorf("created FlowTaskRef = %q, want %q", created.FlowTaskRef, "flow-task-117")
+	}
+
+	got, err := c.GetTask(ctx(), created.ID)
+	if err != nil {
+		t.Fatalf("GetTask: %v", err)
+	}
+	if got.FlowTaskRef != "flow-task-117" {
+		t.Errorf("get FlowTaskRef = %q, want %q", got.FlowTaskRef, "flow-task-117")
+	}
+
+	updated, err := c.UpdateTask(ctx(), created.ID, client.UpdateTaskInput{AgentID: "", FlowTaskRef: ""})
+	if err != nil {
+		t.Fatalf("UpdateTask: %v", err)
+	}
+	if updated.FlowTaskRef != "" {
+		t.Errorf("updated FlowTaskRef = %q, want empty", updated.FlowTaskRef)
 	}
 }
 

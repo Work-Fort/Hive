@@ -79,7 +79,8 @@ func taskToResponse(t *domain.Task) taskResponse {
 	return taskResponse{
 		ID: t.ID, TeamID: t.TeamID, AgentID: t.AgentID,
 		Title: t.Title, Description: t.Description, Status: string(t.Status),
-		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
+		FlowTaskRef: t.FlowTaskRef,
+		CreatedAt:   t.CreatedAt, UpdatedAt: t.UpdatedAt,
 	}
 }
 
@@ -604,6 +605,7 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 		task := &domain.Task{
 			ID: NewID("tk"), TeamID: input.Body.TeamID, AgentID: input.Body.AgentID,
 			Title: input.Body.Title, Description: input.Body.Description, Status: status,
+			FlowTaskRef: input.Body.FlowTaskRef,
 		}
 		if err := store.CreateTask(ctx, task); err != nil {
 			return nil, mapDomainErr(err)
@@ -650,6 +652,7 @@ func registerTaskRoutes(api huma.API, store domain.Store) {
 			existing.Status = domain.TaskStatus(input.Body.Status)
 		}
 		existing.AgentID = input.Body.AgentID
+		existing.FlowTaskRef = input.Body.FlowTaskRef
 
 		if err := store.UpdateTask(ctx, input.ID, existing); err != nil {
 			return nil, mapDomainErr(err)

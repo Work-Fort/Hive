@@ -89,7 +89,7 @@ func TestTeamDeleteWithDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}
-	if _, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000007", "dep-agent", team.ID); err != nil {
+	if _, err := c.CreateAgent(ctx(), "00000000-0000-0000-0000-000000000007", "dep-agent", team.ID, "", ""); err != nil {
 		t.Fatalf("CreateAgent: %v", err)
 	}
 

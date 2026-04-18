@@ -274,6 +274,7 @@ type CreateTaskInput struct {
 		Title       string `json:"title" doc:"Task title" minLength:"1"`
 		Description string `json:"description,omitempty" doc:"Task description"`
 		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed" enum:"pending,in_progress,completed"`
+		FlowTaskRef string `json:"flow_task_ref,omitempty" doc:"Free-form reference to the originating Flow workflow task"`
 	}
 }
 
@@ -284,6 +285,7 @@ type UpdateTaskInput struct {
 		Description string `json:"description,omitempty" doc:"Task description"`
 		Status      string `json:"status,omitempty" doc:"Status: pending, in_progress, completed" enum:"pending,in_progress,completed"`
 		AgentID     string `json:"agent_id" doc:"Assigned agent ID (empty to unassign)"`
+		FlowTaskRef string `json:"flow_task_ref,omitempty" doc:"Free-form reference to the originating Flow workflow task (empty to clear)"`
 	}
 }
 
@@ -302,6 +304,7 @@ type taskResponse struct {
 	Title       string    `json:"Title" doc:"Task title"`
 	Description string    `json:"Description" doc:"Task description"`
 	Status      string    `json:"Status" doc:"Task status"`
+	FlowTaskRef string    `json:"FlowTaskRef,omitempty" doc:"Free-form reference to the originating Flow workflow task"`
 	CreatedAt   time.Time `json:"CreatedAt" doc:"Creation timestamp"`
 	UpdatedAt   time.Time `json:"UpdatedAt" doc:"Last update timestamp"`
 }

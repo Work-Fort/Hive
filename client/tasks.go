@@ -13,6 +13,7 @@ type CreateTaskInput struct {
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
 	Status      string `json:"status,omitempty"` // defaults to "pending" if empty
+	FlowTaskRef string `json:"flow_task_ref,omitempty"`
 }
 
 // UpdateTaskInput holds the fields for updating a task. Zero-value string
@@ -22,6 +23,7 @@ type UpdateTaskInput struct {
 	Description string `json:"description,omitempty"`
 	Status      string `json:"status,omitempty"`
 	AgentID     string `json:"agent_id"` // always sent; empty string clears assignment
+	FlowTaskRef string `json:"flow_task_ref,omitempty"`
 }
 
 // ListTeamTasks returns all tasks belonging to the given team.
