@@ -184,7 +184,7 @@ type documentResponse struct {
 
 type ListAgentsInput struct {
 	TeamID     string `query:"team_id" doc:"Filter by team ID"`
-	Assigned   *bool  `query:"assigned" doc:"Filter by assignment state (true/false)"`
+	Assigned   string `query:"assigned" doc:"Filter by assignment state" enum:"true,false,"`
 	WorkflowID string `query:"workflow_id" doc:"Filter by claiming workflow"`
 	Role       string `query:"role" doc:"Filter by current role"`
 	Project    string `query:"project" doc:"Filter by current project"`

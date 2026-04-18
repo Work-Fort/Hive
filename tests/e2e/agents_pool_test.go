@@ -40,8 +40,7 @@ func TestClaimReleaseRoundTrip(t *testing.T) {
 		t.Fatalf("ReleaseAgent: %v", err)
 	}
 
-	falseVal := false
-	free, err := c.ListAgentsByAssignment(ctx(), "", &falseVal, "", "", "")
+	free, err := c.ListAgentsByAssignment(ctx(), "", "false", "", "", "")
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment: %v", err)
 	}
@@ -146,10 +145,7 @@ func TestListAssignedFilters(t *testing.T) {
 		t.Fatalf("ClaimAgent: %v", err)
 	}
 
-	trueVal := true
-	falseVal := false
-
-	assigned, err := c.ListAgentsByAssignment(ctx(), "", &trueVal, "", "", "")
+	assigned, err := c.ListAgentsByAssignment(ctx(), "", "true", "", "", "")
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment(assigned=true): %v", err)
 	}
@@ -157,7 +153,7 @@ func TestListAssignedFilters(t *testing.T) {
 		t.Errorf("assigned=true: expected claimed agent, got %+v", assigned)
 	}
 
-	free, err := c.ListAgentsByAssignment(ctx(), "", &falseVal, "", "", "")
+	free, err := c.ListAgentsByAssignment(ctx(), "", "false", "", "", "")
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment(assigned=false): %v", err)
 	}
@@ -165,7 +161,7 @@ func TestListAssignedFilters(t *testing.T) {
 		t.Errorf("assigned=false: expected 1 free agent, got %d", len(free))
 	}
 
-	byRole, err := c.ListAgentsByAssignment(ctx(), "", nil, "", "developer", "")
+	byRole, err := c.ListAgentsByAssignment(ctx(), "", "", "", "developer", "")
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment(role=developer): %v", err)
 	}

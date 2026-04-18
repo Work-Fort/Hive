@@ -424,9 +424,17 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		Summary:     "List agents",
 		Tags:        []string{"Agents"},
 	}, func(ctx context.Context, input *ListAgentsInput) (*AgentListOutput, error) {
-		if input.Assigned != nil || input.WorkflowID != "" || input.Role != "" || input.Project != "" {
+		var assigned *bool
+		if input.Assigned == "true" {
+			t := true
+			assigned = &t
+		} else if input.Assigned == "false" {
+			f := false
+			assigned = &f
+		}
+		if assigned != nil || input.WorkflowID != "" || input.Role != "" || input.Project != "" {
 			filter := domain.AgentAssignmentFilter{
-				TeamID: input.TeamID, Assigned: input.Assigned,
+				TeamID: input.TeamID, Assigned: assigned,
 				WorkflowID: input.WorkflowID, Role: input.Role, Project: input.Project,
 			}
 			agents, err := store.ListAgentsByAssignment(ctx, filter)

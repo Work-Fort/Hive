@@ -5,7 +5,6 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"strconv"
 )
 
 // RoleAssignment is the input type for SetAgentRoles.
@@ -104,15 +103,15 @@ func (c *Client) RenewAgentLease(ctx context.Context, id, workflowID string, ttl
 	return c.do(ctx, http.MethodPost, "/v1/agents/"+id+"/renew", body, nil)
 }
 
-// ListAgentsByAssignment lists agents with optional pool filters. Pass nil for
-// assigned to omit that filter; pass empty strings to omit other filters.
-func (c *Client) ListAgentsByAssignment(ctx context.Context, teamID string, assigned *bool, workflowID, role, project string) ([]Agent, error) {
+// ListAgentsByAssignment lists agents with optional pool filters. Pass "" for
+// assigned to omit that filter; pass "true" or "false" to filter by state.
+func (c *Client) ListAgentsByAssignment(ctx context.Context, teamID, assigned, workflowID, role, project string) ([]Agent, error) {
 	params := url.Values{}
 	if teamID != "" {
 		params.Set("team_id", teamID)
 	}
-	if assigned != nil {
-		params.Set("assigned", strconv.FormatBool(*assigned))
+	if assigned != "" {
+		params.Set("assigned", assigned)
 	}
 	if workflowID != "" {
 		params.Set("workflow_id", workflowID)
