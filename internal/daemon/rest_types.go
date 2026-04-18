@@ -183,7 +183,37 @@ type documentResponse struct {
 // --- agents ---
 
 type ListAgentsInput struct {
-	TeamID string `query:"team_id" doc:"Filter by team ID"`
+	TeamID     string `query:"team_id" doc:"Filter by team ID"`
+	Assigned   *bool  `query:"assigned" doc:"Filter by assignment state (true/false)"`
+	WorkflowID string `query:"workflow_id" doc:"Filter by claiming workflow"`
+	Role       string `query:"role" doc:"Filter by current role"`
+	Project    string `query:"project" doc:"Filter by current project"`
+}
+
+// --- agent pool ---
+
+type ClaimAgentInput struct {
+	Body struct {
+		Role            string `json:"role" doc:"Role the agent will fill" minLength:"1"`
+		Project         string `json:"project" doc:"Project the agent will work on" minLength:"1"`
+		WorkflowID      string `json:"workflow_id" doc:"Flow workflow holding the lease" minLength:"1"`
+		LeaseTTLSeconds int    `json:"lease_ttl_seconds" doc:"Lease duration in seconds" minimum:"1"`
+	}
+}
+
+type ReleaseAgentInput struct {
+	ID   string `path:"id" doc:"Agent ID"`
+	Body struct {
+		WorkflowID string `json:"workflow_id" doc:"Workflow holding the lease" minLength:"1"`
+	}
+}
+
+type RenewAgentInput struct {
+	ID   string `path:"id" doc:"Agent ID"`
+	Body struct {
+		WorkflowID      string `json:"workflow_id" doc:"Workflow holding the lease" minLength:"1"`
+		LeaseTTLSeconds int    `json:"lease_ttl_seconds" doc:"New lease duration in seconds from now" minimum:"1"`
+	}
 }
 
 type CreateAgentInput struct {
@@ -231,24 +261,32 @@ type AgentDetailOutput struct {
 }
 
 type agentResponse struct {
-	ID        string    `json:"ID" doc:"Agent ID"`
-	Name      string    `json:"Name" doc:"Agent name"`
-	TeamID    string    `json:"TeamID" doc:"Team ID"`
-	Model     string    `json:"Model,omitempty" doc:"LLM model identifier"`
-	Runtime   string    `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
-	CreatedAt time.Time `json:"CreatedAt" doc:"Creation timestamp"`
-	UpdatedAt time.Time `json:"UpdatedAt" doc:"Last update timestamp"`
+	ID                string    `json:"ID" doc:"Agent ID"`
+	Name              string    `json:"Name" doc:"Agent name"`
+	TeamID            string    `json:"TeamID" doc:"Team ID"`
+	Model             string    `json:"Model,omitempty" doc:"LLM model identifier"`
+	Runtime           string    `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
+	CurrentRole       string    `json:"CurrentRole,omitempty" doc:"Role the agent is filling"`
+	CurrentProject    string    `json:"CurrentProject,omitempty" doc:"Project the agent is working on"`
+	CurrentWorkflowID string    `json:"CurrentWorkflowID,omitempty" doc:"Flow workflow holding the lease"`
+	LeaseExpiresAt    time.Time `json:"LeaseExpiresAt,omitempty" doc:"Lease expiry timestamp"`
+	CreatedAt         time.Time `json:"CreatedAt" doc:"Creation timestamp"`
+	UpdatedAt         time.Time `json:"UpdatedAt" doc:"Last update timestamp"`
 }
 
 type agentDetailResponse struct {
-	ID        string              `json:"ID" doc:"Agent ID"`
-	Name      string              `json:"Name" doc:"Agent name"`
-	TeamID    string              `json:"TeamID" doc:"Team ID"`
-	Model     string              `json:"Model,omitempty" doc:"LLM model identifier"`
-	Runtime   string              `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
-	CreatedAt time.Time           `json:"CreatedAt" doc:"Creation timestamp"`
-	UpdatedAt time.Time           `json:"UpdatedAt" doc:"Last update timestamp"`
-	Roles     []agentRoleResponse `json:"roles" doc:"Assigned roles"`
+	ID                string              `json:"ID" doc:"Agent ID"`
+	Name              string              `json:"Name" doc:"Agent name"`
+	TeamID            string              `json:"TeamID" doc:"Team ID"`
+	Model             string              `json:"Model,omitempty" doc:"LLM model identifier"`
+	Runtime           string              `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
+	CurrentRole       string              `json:"CurrentRole,omitempty" doc:"Role the agent is filling"`
+	CurrentProject    string              `json:"CurrentProject,omitempty" doc:"Project the agent is working on"`
+	CurrentWorkflowID string              `json:"CurrentWorkflowID,omitempty" doc:"Flow workflow holding the lease"`
+	LeaseExpiresAt    time.Time           `json:"LeaseExpiresAt,omitempty" doc:"Lease expiry timestamp"`
+	CreatedAt         time.Time           `json:"CreatedAt" doc:"Creation timestamp"`
+	UpdatedAt         time.Time           `json:"UpdatedAt" doc:"Last update timestamp"`
+	Roles             []agentRoleResponse `json:"roles" doc:"Assigned roles"`
 }
 
 type agentRoleResponse struct {
