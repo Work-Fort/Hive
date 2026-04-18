@@ -11,6 +11,27 @@ import (
 	"github.com/Work-Fort/Hive/internal/infra/sqlite"
 )
 
+func TestSweeperStart_StopsOnContextCancel(t *testing.T) {
+	store, _ := sqlite.Open("")
+	t.Cleanup(func() { store.Close() })
+
+	sw := daemon.NewSweeperService(store)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { sw.Start(ctx, 10*time.Millisecond); close(done) }()
+
+	// Let the ticker fire at least once.
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("sweeper did not stop within 1s of cancel")
+	}
+}
+
 func TestSweeperReleasesOneExpiredAgent(t *testing.T) {
 	store, err := sqlite.Open("")
 	if err != nil {
