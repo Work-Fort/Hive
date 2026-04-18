@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -129,6 +130,79 @@ func TestGetProvisioning(t *testing.T) {
 	}
 	if len(resp.Memory) != 0 {
 		t.Errorf("got %d memory docs, want 0", len(resp.Memory))
+	}
+}
+
+func TestGetProvisioning_ClaimedAgent_SurfacesCurrentAssignment(t *testing.T) {
+	store, err := openTestStore("")
+	if err != nil {
+		t.Fatalf("open test store: %v", err)
+	}
+	t.Cleanup(func() { store.Close() })
+
+	team := &domain.Team{ID: NewID("tm"), Name: "mcp-pool-team"}
+	if err := store.CreateTeam(context.Background(), team); err != nil {
+		t.Fatalf("create team: %v", err)
+	}
+
+	agent := &domain.Agent{ID: uuid.New().String(), Name: "mcp-pool-agent", TeamID: team.ID}
+	if err := store.CreateAgent(context.Background(), agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	// Seed all permissions and grant them.
+	allPerms := []string{
+		"role:read", "role:write",
+		"memory:read", "memory:write",
+		"task:read", "task:write",
+		"agent:manage", "team:manage",
+	}
+	if err := store.SeedPermissions(context.Background(), allPerms); err != nil {
+		t.Fatalf("seed permissions: %v", err)
+	}
+	perms := make([]domain.AgentPermission, len(allPerms))
+	for i, name := range allPerms {
+		perms[i] = domain.AgentPermission{AgentID: agent.ID, PermissionID: name}
+	}
+	if err := store.SetAgentPermissions(context.Background(), agent.ID, perms); err != nil {
+		t.Fatalf("grant permissions: %v", err)
+	}
+
+	// Create reviewer role and claim the agent.
+	if err := store.CreateRole(context.Background(), &domain.Role{ID: "role-reviewer", Name: "reviewer"}); err != nil {
+		t.Fatalf("create role: %v", err)
+	}
+	expires := time.Now().UTC().Add(2 * time.Minute)
+	if _, err := store.ClaimAgent(context.Background(), "reviewer", "mcp-project", "wf-mcp-1", expires); err != nil {
+		t.Fatalf("claim agent: %v", err)
+	}
+
+	health := NewHealthService()
+	provisioning := NewProvisioningService(store, health, 10)
+	deps := MCPDeps{
+		Store:        store,
+		Provisioning: provisioning,
+		Authz:        NewAuthzService(store),
+	}
+
+	ctx := contextWithAgentID(context.Background(), agent.ID)
+	handler := makeGetProvisioning(deps)
+	result := callTool(t, handler, ctx, nil)
+	if result.IsError {
+		t.Fatalf("expected success, got error: %s", resultText(t, result))
+	}
+
+	var resp domain.ProvisioningResponse
+	unmarshalResult(t, result, &resp)
+
+	if resp.CurrentAssignment == nil {
+		t.Fatalf("expected CurrentAssignment populated, got nil")
+	}
+	if resp.CurrentAssignment.Role != "reviewer" {
+		t.Errorf("CurrentAssignment.Role = %q, want reviewer", resp.CurrentAssignment.Role)
+	}
+	if resp.CurrentAssignment.Project != "mcp-project" {
+		t.Errorf("CurrentAssignment.Project = %q, want mcp-project", resp.CurrentAssignment.Project)
 	}
 }
 
