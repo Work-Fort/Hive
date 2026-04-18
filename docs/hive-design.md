@@ -264,12 +264,15 @@ All deletes reject when dependencies exist (no cascading):
 
 ### Agents
 
-- `GET /v1/agents` — list agents (optional `?team_id=` filter)
+- `GET /v1/agents` — list agents (optional `?team_id=`, `?assigned=`, `?workflow_id=`, `?role=`, `?project=` filters)
 - `POST /v1/agents` — create agent
 - `GET /v1/agents/:id` — get agent with role assignments
 - `PUT /v1/agents/:id` — update agent
 - `DELETE /v1/agents/:id` — delete agent
 - `PUT /v1/agents/:id/roles` — set role assignments (with priorities)
+- `POST /v1/agents/claim` — atomically claim a free agent for a workflow (returns agent or 409 on pool exhaustion)
+- `POST /v1/agents/:id/release` — release a claim (CAS on `workflow_id`)
+- `POST /v1/agents/:id/renew` — renew a claim's lease (CAS on `workflow_id`)
 
 ### Tasks
 
