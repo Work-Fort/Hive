@@ -119,12 +119,22 @@ type AgentPermission struct {
 	ScopeTeamID  string // empty = global scope
 }
 
+// CurrentAssignment is the runtime assignment context surfaced to an
+// agent by get_provisioning. Zero value means the agent is free.
+type CurrentAssignment struct {
+	Role           string    `json:"role"`
+	Project        string    `json:"project"`
+	WorkflowID     string    `json:"workflow_id"`
+	LeaseExpiresAt time.Time `json:"lease_expires_at"`
+}
+
 // ProvisioningResponse is the hierarchical response returned when an agent
 // requests its provisioning data.
 type ProvisioningResponse struct {
-	Agent  AgentIdentity           `json:"agent"`
-	Roles  []ProvisioningRoleGroup `json:"roles"`
-	Memory []Document              `json:"memory"`
+	Agent             AgentIdentity           `json:"agent"`
+	CurrentAssignment *CurrentAssignment      `json:"current_assignment,omitempty"`
+	Roles             []ProvisioningRoleGroup `json:"roles"`
+	Memory            []Document              `json:"memory"`
 }
 
 // AgentIdentity is the subset of agent fields returned in a provisioning
