@@ -98,6 +98,9 @@ type Task struct {
 	Title       string
 	Description string
 	Status      TaskStatus
+	// FlowTaskRef is a free-form string referencing the originating Flow
+	// workflow task. Opaque to Hive — Hive does not parse or validate it.
+	FlowTaskRef string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
