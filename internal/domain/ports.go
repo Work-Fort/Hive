@@ -4,6 +4,7 @@ package domain
 import (
 	"context"
 	"io"
+	"time"
 )
 
 // TeamStore persists team metadata.
@@ -42,6 +43,23 @@ type AgentStore interface {
 	SetAgentRoles(ctx context.Context, agentID string, roles []AgentRole) error
 	GetAgentRoles(ctx context.Context, agentID string) ([]AgentRole, error)
 	LookupAgentByName(ctx context.Context, name string) (*Agent, error)
+
+	// ClaimAgent atomically picks one free agent and sets its current
+	// assignment. Returns the chosen agent, or ErrPoolExhausted when no
+	// free agent is available.
+	ClaimAgent(ctx context.Context, role, project, workflowID string, leaseExpiresAt time.Time) (*Agent, error)
+
+	// ReleaseAgent clears the current assignment if current_workflow_id
+	// matches workflowID. Returns ErrWorkflowMismatch on mismatch,
+	// ErrNotFound if the agent doesn't exist.
+	ReleaseAgent(ctx context.Context, agentID, workflowID string) error
+
+	// RenewAgentLease extends lease_expires_at if current_workflow_id
+	// matches workflowID. Returns ErrWorkflowMismatch on mismatch.
+	RenewAgentLease(ctx context.Context, agentID, workflowID string, leaseExpiresAt time.Time) error
+
+	// ListAgentsByAssignment lists agents with optional pool filters.
+	ListAgentsByAssignment(ctx context.Context, filter AgentAssignmentFilter) ([]*Agent, error)
 }
 
 // DocumentStore persists markdown documents for roles and agents.

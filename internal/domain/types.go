@@ -150,3 +150,14 @@ type ProvisioningChainEntry struct {
 	Role      string     `json:"role"`
 	Documents []Document `json:"documents"`
 }
+
+// AgentAssignmentFilter narrows ListAgentsByAssignment. Zero values mean
+// "no filter" except Assigned which uses *bool to distinguish
+// "unspecified" from "false".
+type AgentAssignmentFilter struct {
+	Assigned   *bool  // nil = all; true = claimed only; false = free only
+	WorkflowID string // empty = no filter
+	Role       string // empty = no filter
+	Project    string // empty = no filter
+	TeamID     string // empty = no filter (matches existing ListAgents)
+}
