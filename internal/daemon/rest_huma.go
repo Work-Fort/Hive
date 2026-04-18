@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -423,6 +424,21 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		Summary:     "List agents",
 		Tags:        []string{"Agents"},
 	}, func(ctx context.Context, input *ListAgentsInput) (*AgentListOutput, error) {
+		if input.Assigned != nil || input.WorkflowID != "" || input.Role != "" || input.Project != "" {
+			filter := domain.AgentAssignmentFilter{
+				TeamID: input.TeamID, Assigned: input.Assigned,
+				WorkflowID: input.WorkflowID, Role: input.Role, Project: input.Project,
+			}
+			agents, err := store.ListAgentsByAssignment(ctx, filter)
+			if err != nil {
+				return nil, mapDomainErr(err)
+			}
+			resp := make([]agentResponse, len(agents))
+			for i, a := range agents {
+				resp[i] = agentToResponse(a)
+			}
+			return &AgentListOutput{Body: resp}, nil
+		}
 		agents, err := store.ListAgents(ctx, input.TeamID)
 		if err != nil {
 			return nil, mapDomainErr(err)
@@ -566,6 +582,51 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 			updated = []domain.AgentRole{}
 		}
 		return &AgentRoleListOutput{Body: agentRolesToResponse(updated)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "claim-agent",
+		Method:        http.MethodPost,
+		Path:          "/v1/agents/claim",
+		Summary:       "Atomically claim a free agent",
+		DefaultStatus: http.StatusOK,
+		Tags:          []string{"Agents"},
+	}, func(ctx context.Context, input *ClaimAgentInput) (*AgentOutput, error) {
+		expires := time.Now().UTC().Add(time.Duration(input.Body.LeaseTTLSeconds) * time.Second)
+		agent, err := store.ClaimAgent(ctx, input.Body.Role, input.Body.Project, input.Body.WorkflowID, expires)
+		if err != nil {
+			return nil, mapDomainErr(err)
+		}
+		return &AgentOutput{Body: agentToResponse(agent)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "release-agent",
+		Method:        http.MethodPost,
+		Path:          "/v1/agents/{id}/release",
+		Summary:       "Release an agent's current assignment",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Agents"},
+	}, func(ctx context.Context, input *ReleaseAgentInput) (*struct{}, error) {
+		if err := store.ReleaseAgent(ctx, input.ID, input.Body.WorkflowID); err != nil {
+			return nil, mapDomainErr(err)
+		}
+		return nil, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "renew-agent",
+		Method:        http.MethodPost,
+		Path:          "/v1/agents/{id}/renew",
+		Summary:       "Renew an agent's lease",
+		DefaultStatus: http.StatusNoContent,
+		Tags:          []string{"Agents"},
+	}, func(ctx context.Context, input *RenewAgentInput) (*struct{}, error) {
+		expires := time.Now().UTC().Add(time.Duration(input.Body.LeaseTTLSeconds) * time.Second)
+		if err := store.RenewAgentLease(ctx, input.ID, input.Body.WorkflowID, expires); err != nil {
+			return nil, mapDomainErr(err)
+		}
+		return nil, nil
 	})
 }
 
