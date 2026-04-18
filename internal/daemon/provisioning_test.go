@@ -436,6 +436,32 @@ func TestResolve_SharedAncestor_NoDedupe(t *testing.T) {
 	}
 }
 
+func TestResolve_FreeAgent_NoCurrentAssignment(t *testing.T) {
+	ctx := context.Background()
+	store, ps := testSetup(t, 10)
+
+	teamID := seedTeam(t, ctx, store, "alpha")
+	agentID := seedAgent(t, ctx, store, "worker-01", teamID)
+	roleID := seedRole(t, ctx, store, "developer", "")
+	seedDoc(t, ctx, store, "doc-1", "Dev", "dev content", roleID)
+
+	store.SetAgentRoles(ctx, agentID, []domain.AgentRole{
+		{AgentID: agentID, RoleID: roleID, Priority: 1},
+	})
+
+	resp, err := ps.Resolve(ctx, agentID)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	if resp.CurrentAssignment != nil {
+		t.Errorf("CurrentAssignment should be nil for free agent, got %+v", resp.CurrentAssignment)
+	}
+	if len(resp.Roles) != 1 || resp.Roles[0].Chain[0].Role != "developer" {
+		t.Errorf("expected persistent role developer, got %+v", resp.Roles)
+	}
+}
+
 func TestValidateRoleParent_CycleDetection_SelfReference(t *testing.T) {
 	ctx := context.Background()
 	store, ps := testSetup(t, 10)
