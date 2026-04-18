@@ -1,10 +1,13 @@
 ---
 id: BUG-001
 severity: low
-status: open
+status: closed
 plan: out-of-scope (Plan 02)
 filed-by: qa-tester
 date: 2026-04-18
+resolved-by: team-lead
+resolved-date: 2026-04-18
+resolved-commit: pending
 ---
 
 # TestUnauthorizedRequest fails due to JWKS stub accepting all tokens
@@ -61,3 +64,17 @@ allowlisted value.
 
 Task #12 (Fix pre-existing gofmt issues) is already queued for interstitial work.
 This bug should be tracked alongside it or as a follow-up after Plan 02 completion.
+
+## Resolution
+
+Chose the simpler of the two options (reject-all vs allowlist). The e2e suite
+has no test that exercises API-key bearer auth — all authenticated requests
+use JWTs minted by the harness's `signJWT` closure. A bearer that falls
+through to the API key validator is therefore definitionally not valid, so
+`POST /v1/verify-api-key` now returns HTTP 401 unconditionally.
+
+If a future test needs API-key-auth coverage, we'll extend the stub with an
+allowlist then — per-test configurability is premature right now.
+
+Verified: `mise run e2e` is fully green — `TestUnauthorizedRequest` passes,
+no regressions in the other 20+ tests.

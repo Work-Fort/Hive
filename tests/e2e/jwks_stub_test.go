@@ -17,7 +17,9 @@ import (
 
 // startJWKSStub starts a JWKS stub server that serves:
 //   - GET /v1/jwks — the public key in JWKS format
-//   - POST /v1/verify-api-key — accepts any key and returns a canned identity
+//   - POST /v1/verify-api-key — rejects all API keys with 401 (the e2e suite
+//     only uses JWT auth via signJWT; a permissive stub defeats negative-auth
+//     tests like TestUnauthorizedRequest)
 //
 // It returns:
 //   - addr: the server address (host:port)
@@ -52,21 +54,6 @@ func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name,
 		panic(fmt.Sprintf("jwks_stub: marshal JWKS: %v", err))
 	}
 
-	// Default identity for API key verification — a service account the
-	// tests can ignore (export/import tests use JWT auth via --passport-token).
-	stubIdentity := map[string]any{
-		"valid": true,
-		"key": map[string]any{
-			"userId": "00000000-0000-0000-0000-000000000001",
-			"metadata": map[string]any{
-				"username":     "stub-service",
-				"name":         "Stub Service",
-				"display_name": "Stub",
-				"type":         "service",
-			},
-		},
-	}
-
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /v1/jwks", func(w http.ResponseWriter, r *http.Request) {
@@ -74,18 +61,14 @@ func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name,
 		w.Write(jwksBytes) //nolint:errcheck
 	})
 
+	// Reject all API keys. The e2e harness only uses JWT auth (via signJWT),
+	// so any bearer token that falls through to API key validation is by
+	// definition not valid. Returning 401 here is what lets negative-auth
+	// tests (TestUnauthorizedRequest) work.
 	mux.HandleFunc("POST /v1/verify-api-key", func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Key string `json:"key"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Key == "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]any{"valid": false, "error": "invalid request"}) //nolint:errcheck
-			return
-		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(stubIdentity) //nolint:errcheck
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]any{"valid": false, "error": "unknown api key"}) //nolint:errcheck
 	})
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
