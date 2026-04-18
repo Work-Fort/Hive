@@ -4,6 +4,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/charmbracelet/log"
 
@@ -37,50 +38,95 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 		return nil, fmt.Errorf("get agent: %w", err)
 	}
 
-	agentRoles, err := ps.store.GetAgentRoles(ctx, agentID)
-	if err != nil {
-		return nil, fmt.Errorf("get agent roles: %w", err)
-	}
+	var groups []domain.ProvisioningRoleGroup
+	var memory []domain.Document
+	var currentAssignment *domain.CurrentAssignment
 
-	groups := make([]domain.ProvisioningRoleGroup, 0, len(agentRoles))
-	for _, ar := range agentRoles {
-		chain, err := ps.store.GetRoleChain(ctx, ar.RoleID, ps.maxRoleDepth)
-		if err != nil {
-			return nil, fmt.Errorf("get role chain for %s: %w", ar.RoleID, err)
+	if agent.CurrentWorkflowID != "" {
+		currentAssignment = &domain.CurrentAssignment{
+			Role:           agent.CurrentRole,
+			Project:        agent.CurrentProject,
+			WorkflowID:     agent.CurrentWorkflowID,
+			LeaseExpiresAt: agent.LeaseExpiresAt,
 		}
 
+		role, err := ps.store.LookupRoleByName(ctx, agent.CurrentRole)
+		if err != nil {
+			return nil, fmt.Errorf("lookup current role %q: %w", agent.CurrentRole, err)
+		}
+		chain, err := ps.store.GetRoleChain(ctx, role.ID, ps.maxRoleDepth)
+		if err != nil {
+			return nil, fmt.Errorf("get current role chain: %w", err)
+		}
 		entries := make([]domain.ProvisioningChainEntry, 0, len(chain))
-		for _, role := range chain {
-			docs, err := ps.store.ListRoleDocuments(ctx, role.ID)
+		for _, r := range chain {
+			docs, err := ps.store.ListRoleDocuments(ctx, r.ID)
 			if err != nil {
-				return nil, fmt.Errorf("list documents for role %s: %w", role.ID, err)
+				return nil, fmt.Errorf("list documents for role %s: %w", r.ID, err)
 			}
-
 			docSlice := make([]domain.Document, len(docs))
 			for i, d := range docs {
 				docSlice[i] = *d
 			}
-
 			entries = append(entries, domain.ProvisioningChainEntry{
-				Role:      role.Name,
-				Documents: docSlice,
+				Role: r.Name, Documents: docSlice,
 			})
 		}
+		groups = []domain.ProvisioningRoleGroup{{Priority: 0, Chain: entries}}
 
-		groups = append(groups, domain.ProvisioningRoleGroup{
-			Priority: ar.Priority,
-			Chain:    entries,
+		now := time.Now().UTC()
+		memory = append(memory, domain.Document{
+			ID:        "synthetic:current-project",
+			Kind:      domain.DocumentKindMemory,
+			Title:     "Current Project",
+			Content:   fmt.Sprintf("You are currently acting as **%s** for project **%s**.\n", agent.CurrentRole, agent.CurrentProject),
+			AgentID:   agent.ID,
+			CreatedAt: now, UpdatedAt: now,
 		})
+	} else {
+		agentRoles, err := ps.store.GetAgentRoles(ctx, agentID)
+		if err != nil {
+			return nil, fmt.Errorf("get agent roles: %w", err)
+		}
+
+		groups = make([]domain.ProvisioningRoleGroup, 0, len(agentRoles))
+		for _, ar := range agentRoles {
+			chain, err := ps.store.GetRoleChain(ctx, ar.RoleID, ps.maxRoleDepth)
+			if err != nil {
+				return nil, fmt.Errorf("get role chain for %s: %w", ar.RoleID, err)
+			}
+
+			entries := make([]domain.ProvisioningChainEntry, 0, len(chain))
+			for _, role := range chain {
+				docs, err := ps.store.ListRoleDocuments(ctx, role.ID)
+				if err != nil {
+					return nil, fmt.Errorf("list documents for role %s: %w", role.ID, err)
+				}
+
+				docSlice := make([]domain.Document, len(docs))
+				for i, d := range docs {
+					docSlice[i] = *d
+				}
+
+				entries = append(entries, domain.ProvisioningChainEntry{
+					Role:      role.Name,
+					Documents: docSlice,
+				})
+			}
+
+			groups = append(groups, domain.ProvisioningRoleGroup{
+				Priority: ar.Priority,
+				Chain:    entries,
+			})
+		}
 	}
 
 	memDocs, err := ps.store.ListAgentMemory(ctx, agentID)
 	if err != nil {
 		return nil, fmt.Errorf("list agent memory: %w", err)
 	}
-
-	memory := make([]domain.Document, len(memDocs))
-	for i, d := range memDocs {
-		memory[i] = *d
+	for _, d := range memDocs {
+		memory = append(memory, *d)
 	}
 
 	return &domain.ProvisioningResponse{
@@ -91,8 +137,9 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 			Model:   agent.Model,
 			Runtime: agent.Runtime,
 		},
-		Roles:  groups,
-		Memory: memory,
+		CurrentAssignment: currentAssignment,
+		Roles:             groups,
+		Memory:            memory,
 	}, nil
 }
 
