@@ -131,14 +131,23 @@ New behavior: if `current_assignment` is set, return the role
 documents for `current_role` instead of the persistent role-set.
 Project is exposed as additional context (probably as a memory
 document, since the role doc itself shouldn't change per project).
+Persisted agent memory documents are ALWAYS included in the
+response regardless of assignment state — only the role-set
+swaps. The synthetic project document is additive, layered on top
+of the persisted memory rather than replacing it.
 
 This way an agent's MCP tool `get_provisioning` returns "you are
 acting as a `developer` for project `flow`" when claimed, and
 returns idle/empty (or the persistent role-set) when free.
 
-The existing permission-filtering for tools continues to apply per
-the assignment's role — so a developer claimed for `flow` only
-sees the tools the `developer` role permits.
+Tool permissions are unaffected by the assignment. Hive's MCP
+`permissionMap` gates tool exposure on agent-level permissions
+(`agent_permissions` table), not on roles. Agents in a fungible
+pool must be granted the union of permissions across every role
+they may be claimed for; role documents constrain *behavior*,
+agent permissions constrain *capability*. The current assignment
+swaps the role-set but does not narrow or widen what tools the
+agent may call.
 
 ## Migration order
 
