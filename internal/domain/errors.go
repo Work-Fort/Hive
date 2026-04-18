@@ -24,4 +24,11 @@ var (
 
 	// ErrPermissionDenied is returned when an agent lacks a required permission.
 	ErrPermissionDenied = errors.New("permission denied")
+
+	// ErrPoolExhausted is returned when no free agent matches a claim.
+	ErrPoolExhausted = errors.New("no free agents available")
+
+	// ErrWorkflowMismatch is returned when a release or renew is issued by a
+	// different workflow than the one currently holding the claim.
+	ErrWorkflowMismatch = errors.New("workflow id does not match current claim")
 )

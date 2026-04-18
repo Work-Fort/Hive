@@ -30,6 +30,10 @@ func mapDomainErr(err error) error {
 		return huma.NewError(http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, domain.ErrCycleDetected):
 		return huma.NewError(http.StatusUnprocessableEntity, err.Error())
+	case errors.Is(err, domain.ErrPoolExhausted):
+		return huma.NewError(http.StatusConflict, err.Error())
+	case errors.Is(err, domain.ErrWorkflowMismatch):
+		return huma.NewError(http.StatusConflict, err.Error())
 	default:
 		return huma.NewError(http.StatusInternalServerError, "internal error")
 	}
