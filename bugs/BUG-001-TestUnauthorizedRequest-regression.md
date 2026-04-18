@@ -7,7 +7,7 @@ filed-by: qa-tester
 date: 2026-04-18
 resolved-by: team-lead
 resolved-date: 2026-04-18
-resolved-commit: pending
+resolved-commit: 56fbd40
 ---
 
 # TestUnauthorizedRequest fails due to JWKS stub accepting all tokens
