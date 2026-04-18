@@ -305,6 +305,48 @@ func TestRenewAgentLease_ExtendsExpiry(t *testing.T) {
 	}
 }
 
+func TestSweepExpiredLeases(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+	store.CreateTeam(ctx, &domain.Team{ID: "t_001", Name: "alpha"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001"})
+	store.CreateAgent(ctx, &domain.Agent{ID: "a_002", Name: "bob", TeamID: "t_001"})
+
+	past := time.Now().UTC().Add(-time.Minute)
+	future := time.Now().UTC().Add(time.Hour)
+
+	// a_001 has an expired lease; a_002 has a fresh one.
+	a1 := &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001",
+		CurrentRole: "developer", CurrentProject: "flow",
+		CurrentWorkflowID: "wf-1", LeaseExpiresAt: past}
+	if err := store.UpdateAgent(ctx, a1); err != nil {
+		t.Fatalf("update a_001: %v", err)
+	}
+	a2 := &domain.Agent{ID: "a_002", Name: "bob", TeamID: "t_001",
+		CurrentRole: "reviewer", CurrentProject: "flow",
+		CurrentWorkflowID: "wf-2", LeaseExpiresAt: future}
+	if err := store.UpdateAgent(ctx, a2); err != nil {
+		t.Fatalf("update a_002: %v", err)
+	}
+
+	released, err := store.SweepExpiredLeases(ctx, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("sweep: %v", err)
+	}
+	if len(released) != 1 || released[0].ID != "a_001" {
+		t.Fatalf("expected a_001 released, got %+v", released)
+	}
+
+	got1, _ := store.GetAgent(ctx, "a_001")
+	if got1.CurrentWorkflowID != "" {
+		t.Errorf("a_001 still claimed: %+v", got1)
+	}
+	got2, _ := store.GetAgent(ctx, "a_002")
+	if got2.CurrentWorkflowID != "wf-2" {
+		t.Errorf("a_002 unexpectedly released: %+v", got2)
+	}
+}
+
 func TestListAgentsByAssignment_FreeAndClaimed(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()

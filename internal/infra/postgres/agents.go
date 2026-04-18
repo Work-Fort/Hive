@@ -271,6 +271,48 @@ func (s *Store) RenewAgentLease(ctx context.Context, agentID, workflowID string,
 	return nil
 }
 
+func (s *Store) SweepExpiredLeases(ctx context.Context, now time.Time) ([]*domain.Agent, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(ctx,
+		"SELECT "+agentCols+" FROM agents WHERE lease_expires_at IS NOT NULL AND lease_expires_at < $1",
+		now.UTC())
+	if err != nil {
+		return nil, fmt.Errorf("select expired agents: %w", err)
+	}
+	var released []*domain.Agent
+	for rows.Next() {
+		a, err := scanAgent(rows)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("scan expired agent: %w", err)
+		}
+		released = append(released, a)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate expired agents: %w", err)
+	}
+
+	if len(released) > 0 {
+		_, err = tx.ExecContext(ctx,
+			"UPDATE agents SET current_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE lease_expires_at IS NOT NULL AND lease_expires_at < $1",
+			now.UTC())
+		if err != nil {
+			return nil, fmt.Errorf("clear expired leases: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit sweep: %w", err)
+	}
+	return released, nil
+}
+
 func (s *Store) ListAgentsByAssignment(ctx context.Context, f domain.AgentAssignmentFilter) ([]*domain.Agent, error) {
 	var where []string
 	var args []any

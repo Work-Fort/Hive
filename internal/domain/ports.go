@@ -60,6 +60,11 @@ type AgentStore interface {
 
 	// ListAgentsByAssignment lists agents with optional pool filters.
 	ListAgentsByAssignment(ctx context.Context, filter AgentAssignmentFilter) ([]*Agent, error)
+
+	// SweepExpiredLeases clears the current assignment on any agent whose
+	// lease_expires_at is non-NULL and earlier than `now`. Returns the
+	// agents that were released (for audit logging).
+	SweepExpiredLeases(ctx context.Context, now time.Time) ([]*Agent, error)
 }
 
 // DocumentStore persists markdown documents for roles and agents.
