@@ -11,7 +11,7 @@ import (
 	"github.com/Work-Fort/Hive/internal/transfer"
 )
 
-func seedTestData(t *testing.T, s *sqlite.Store) {
+func seedTestData(t *testing.T, s domain.Store) {
 	t.Helper()
 	ctx := context.Background()
 

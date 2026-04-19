@@ -1,3 +1,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 [tools]
 go = "1.26.0"
+"aqua:golangci/golangci-lint" = "2.11.4"
