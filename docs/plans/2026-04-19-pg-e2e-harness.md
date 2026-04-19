@@ -688,8 +688,8 @@ EOF
 - [ ] `internal/infra/postgres/migrations/` was not modified (no schema regressions sneaked in).
 - [ ] `cmd/daemon/daemon.go` was not modified (the daemon side already supports both backends; this plan is harness-only).
 
-## Open questions
+## Decisions recorded
 
-1. **Postgres version.** Sharkfin and Combine both pin `postgres:17` in CI. We follow suit. If the constellation later moves to `postgres:18`, Hive should follow in a separate one-line bump — not as part of this plan.
-2. **Service-container vs dockerised PG locally.** The plan assumes devs already have PG reachable on `localhost:5432`. If the team wants a `mise run pg:start` task analogous to other test fixtures, that is out of scope here and lands as a follow-up if requested.
-3. **`hive_test_b` cleanup between local runs.** AltDB does not DROP the sibling DB (matches Sharkfin/Combine). It survives between runs and is reset on each test. If a dev wants to reclaim space, `dropdb hive_test_b` is a one-liner. Surface as a docs note in `docs/remaining-work.md` if reviewers want it.
+1. **Postgres version pinned to `postgres:17` in CI.** Matches Sharkfin and Combine. Local dev points at the host's peer-trust PG 18 directly; the CI/host divergence (CI on 17, host on 18) is tracked as a cross-cutting workstream item at `WorkFort/TOOLING-BASELINE-REMAINING-WORK.md` and is explicitly out of scope here.
+2. **No `mise run pg:start` helper.** Skipped — no constellation peer ships one. Local dev points at the host PG; CI uses the service container. A start helper would cross-cut repos and is not this plan's scope.
+3. **`hive_test_b` cleanup mirrors Combine's `combine_e2e_b` pattern.** `AltDB(t)` runs the same `DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO PUBLIC` reset on the sibling DB that the harness runs on the primary, both before the test (in `AltDB`) and after (in the registered `t.Cleanup`). The two lifecycles are symmetric — no special orchestration is needed and the sibling DB does not need to be dropped between runs.
