@@ -8,7 +8,7 @@
         "disabled"
       ],
       "env": {
-        "HIVE_PASSPORT_TOKEN": "${HIVE_PASSPORT_TOKEN}"
+        "HIVE_PASSPORT_API_KEY": "${HIVE_PASSPORT_API_KEY}"
       }
     }
   }

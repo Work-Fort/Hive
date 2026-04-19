@@ -17,7 +17,7 @@ import (
 
 // NewCmd returns the mcp-bridge cobra command.
 func NewCmd() *cobra.Command {
-	var passportToken string
+	var passportAPIKey string
 	var host string
 	var port int
 
@@ -25,24 +25,24 @@ func NewCmd() *cobra.Command {
 		Use:   "mcp-bridge",
 		Short: "Stdio-to-HTTP MCP bridge",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !cmd.Flags().Changed("passport-token") {
-				passportToken = viper.GetString("passport-token")
+			if !cmd.Flags().Changed("passport-api-key") {
+				passportAPIKey = viper.GetString("passport-api-key")
 			}
-			if passportToken == "" {
-				return fmt.Errorf("passport token required: set --passport-token, HIVE_PASSPORT_TOKEN, or passport-token in config")
+			if passportAPIKey == "" {
+				return fmt.Errorf("passport API key required: set --passport-api-key, HIVE_PASSPORT_API_KEY, or passport-api-key in config")
 			}
-			return run(passportToken, host, port)
+			return run(passportAPIKey, host, port)
 		},
 	}
 
-	cmd.Flags().StringVar(&passportToken, "passport-token", "", "Passport JWT or API key")
+	cmd.Flags().StringVar(&passportAPIKey, "passport-api-key", "", "Passport API key (env: HIVE_PASSPORT_API_KEY, sent as ApiKey-v1)")
 	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Daemon host")
 	cmd.Flags().IntVar(&port, "port", 17000, "Daemon port")
 
 	return cmd
 }
 
-func run(passportToken, host string, port int) error {
+func run(passportAPIKey, host string, port int) error {
 	mcpURL := fmt.Sprintf("http://%s:%d/mcp", host, port)
 
 	client := &http.Client{Timeout: 60 * time.Second}
@@ -64,7 +64,7 @@ func run(passportToken, host string, port int) error {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+passportToken)
+		req.Header.Set("Authorization", "ApiKey-v1 "+passportAPIKey)
 		if sessionID != "" {
 			req.Header.Set("Mcp-Session-Id", sessionID)
 		}
