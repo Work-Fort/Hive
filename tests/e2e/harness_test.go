@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -99,15 +100,30 @@ func newHarness(t *testing.T) *Harness {
 		t.Fatalf("pick free port: %v", err)
 	}
 
-	// SQLite database inside the state directory.
-	dbPath := filepath.Join(stateDir, "hive.db")
+	// Backend selection. Default: SQLite file inside the per-harness
+	// state dir. If HIVE_DB is set to a postgres://... DSN we use that
+	// instead and reset its schema before the daemon comes up so each
+	// test starts from a clean store; the daemon's DSN-dispatch (see
+	// internal/infra/open.go) routes the rest. SQLite tempfiles cannot
+	// collide because each harness gets its own t.TempDir-rooted state
+	// directory.
+	dbDSN := os.Getenv("HIVE_DB")
+	if dbDSN == "" {
+		dbDSN = filepath.Join(stateDir, "hive.db")
+	} else if strings.HasPrefix(dbDSN, "postgres://") || strings.HasPrefix(dbDSN, "postgresql://") {
+		if err := resetPostgres(dbDSN); err != nil {
+			stubStop()
+			os.RemoveAll(dir)
+			t.Fatalf("reset postgres: %v", err)
+		}
+	}
 
 	cmd := exec.Command(
 		hiveBin,
 		"daemon",
 		"--bind", "127.0.0.1",
 		"--port", fmt.Sprintf("%d", port),
-		"--db", dbPath,
+		"--db", dbDSN,
 		"--passport-url", "http://"+stubAddr,
 		"--log-level", "disabled",
 		"--sweeper-interval", "200ms",
