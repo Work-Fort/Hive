@@ -116,6 +116,9 @@ func TestAltDB_PostgresReturnsSibling(t *testing.T) {
 // created on disk (proving the daemon dialled PG, not the SQLite
 // fallback path).
 func TestHarness_UsesPostgresWhenHiveDBSet(t *testing.T) {
+	// SQLite backend selection is implicitly covered by every other e2e test
+	// when HIVE_DB is unset: they all call newHarness and rely on the SQLite
+	// tempfile being created.
 	if !usingPostgres() {
 		t.Skipf("HIVE_DB not set to a postgres:// DSN; this test runs in the e2e-postgres CI job and locally with HIVE_DB=postgres://...")
 	}
