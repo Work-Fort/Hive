@@ -90,7 +90,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 
 	// --- Import into fresh DB ---
 
-	freshDBPath := filepath.Join(t.TempDir(), "fresh.db")
+	freshDBPath := AltDB(t)
 
 	importCmd := exec.Command(hiveBin, "import", exportDir,
 		"--db", freshDBPath,
@@ -132,7 +132,7 @@ func TestExportImportDryRun(t *testing.T) {
 
 	// --- Import with --dry-run ---
 
-	freshDBPath := filepath.Join(t.TempDir(), "dry-run.db")
+	freshDBPath := AltDB(t)
 
 	importCmd := exec.Command(hiveBin, "import", exportDir,
 		"--db", freshDBPath,
