@@ -17,21 +17,25 @@ import (
 	"time"
 )
 
-// Client is an HTTP client for the Hive REST API.
+// Client is an HTTP client for the Hive REST API. It authenticates
+// every request with a Passport API key under the ApiKey-v1 scheme.
 type Client struct {
 	http    http.Client
 	baseURL string
-	token   string
+	apiKey  string
 }
 
-// New creates a new Client. baseURL should be the scheme+host+port of the
-// Hive daemon (e.g., "http://127.0.0.1:17000"). token is a Passport JWT or
-// API key sent as a Bearer token on every authenticated request.
-func New(baseURL string, token string) *Client {
+// New creates a Client that authenticates with a Passport API key
+// (Authorization: ApiKey-v1 <key>). API keys are recognizable by
+// the wf-agent_ or wf-svc_ prefix.
+//
+// Hive's outbound clients are API-key-only — JWTs are reserved for
+// browser-routed traffic which never originates here.
+func New(baseURL, apiKey string) *Client {
 	return &Client{
 		http:    http.Client{Timeout: 30 * time.Second},
 		baseURL: strings.TrimRight(baseURL, "/"),
-		token:   token,
+		apiKey:  apiKey,
 	}
 }
 
@@ -56,8 +60,8 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 		req.Header.Set("Content-Type", "application/json")
 	}
 	req.Header.Set("Accept", "application/json")
-	if c.token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.token)
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "ApiKey-v1 "+c.apiKey)
 	}
 
 	resp, err := c.http.Do(req)
