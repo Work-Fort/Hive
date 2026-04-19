@@ -2,15 +2,15 @@
 type: plan
 step: "2026-04-19-pg-e2e-harness"
 title: "Hive PG e2e harness"
-status: pending
-assessment_status: needed
+status: approved
+assessment_status: complete
 provenance:
   source: roadmap
   issue_id: null
   roadmap_step: "2026-04-19-pg-e2e-harness"
 dates:
   created: "2026-04-19"
-  approved: null
+  approved: "2026-04-19"
   completed: null
 related_plans:
   - 008-postgres.md
