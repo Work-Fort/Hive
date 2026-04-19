@@ -1,8 +1,26 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-#MISE description="Run end-to-end tests"
+#MISE description="Run end-to-end tests (backend selected by HIVE_DB env var)"
 #MISE depends=["build:dev"]
 #MISE dir="tests/e2e"
 set -euo pipefail
 
-go test -v -race -count=1 -timeout 120s ./...
+# Backend selection
+# -----------------
+# Default: SQLite (per-test tempfile). No env var needed.
+# Postgres:
+#   HIVE_DB="postgres://postgres@127.0.0.1/hive_test?sslmode=disable" \
+#     mise run e2e
+#
+# The harness reads HIVE_DB once per test, resets the schema if it is a
+# postgres:// DSN, and forwards it via the daemon's --db flag (which
+# auto-dispatches in internal/infra/open.go).
+#
+# Per-backend CI runs are split in .github/workflows/ci.yaml:
+#   - "ci"            -> SQLite via mise run ci
+#   - "e2e-postgres"  -> mise run e2e with HIVE_DB set to a service container
+#
+# Both backends MUST stay green. mise run ci does NOT chain both —
+# that is CI's job (parallel jobs), not the local task runner's.
+
+go test -v -race -count=1 -timeout 600s ./...
