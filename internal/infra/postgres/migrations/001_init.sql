@@ -60,16 +60,23 @@ CREATE TABLE permissions (
     name TEXT UNIQUE NOT NULL
 );
 
+-- scope_team_id is nullable: NULL means the permission is global (no team
+-- restriction). PostgreSQL PRIMARY KEY implies NOT NULL, so we use a
+-- surrogate serial PK and enforce uniqueness via two partial indexes.
 CREATE TABLE agent_permissions (
+    id            BIGSERIAL PRIMARY KEY,
     agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
     permission_id TEXT NOT NULL REFERENCES permissions(id),
-    scope_team_id TEXT REFERENCES teams(id),
-    PRIMARY KEY (agent_id, permission_id, scope_team_id)
+    scope_team_id TEXT REFERENCES teams(id)
 );
 
 CREATE UNIQUE INDEX uq_agent_perm_global
     ON agent_permissions(agent_id, permission_id)
     WHERE scope_team_id IS NULL;
+
+CREATE UNIQUE INDEX uq_agent_perm_scoped
+    ON agent_permissions(agent_id, permission_id, scope_team_id)
+    WHERE scope_team_id IS NOT NULL;
 
 -- +goose Down
 
