@@ -2,6 +2,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -36,6 +38,7 @@ type Harness struct {
 	Client   *client.Client // pre-configured client for this harness
 	stubStop func()         // stops the JWKS stub server
 	signJWT  func(id, username, name, userType string) string
+	logFile  *os.File // stdout+stderr capture; closed in Close after wait
 }
 
 // SignJWT creates a signed JWT with the given identity claims.
@@ -100,12 +103,11 @@ func newHarness(t *testing.T) *Harness {
 		"--log-level", "disabled",
 		"--sweeper-interval", "200ms",
 	)
-	// XDG env vars scope config/state to our temp dirs.
 	cmd.Env = append(os.Environ(),
 		"XDG_STATE_HOME="+stateDir,
 		"XDG_CONFIG_HOME="+configDir,
 	)
-	// Capture daemon output to a file so failures can be diagnosed.
+
 	logFile := filepath.Join(dir, "daemon.log")
 	lf, err := os.Create(logFile)
 	if err != nil {
@@ -113,8 +115,15 @@ func newHarness(t *testing.T) *Harness {
 		os.RemoveAll(dir)
 		t.Fatalf("create daemon log: %v", err)
 	}
+	// *os.File for stdout/stderr (not io.Writer) so exec.Cmd does
+	// not create a copy goroutine; Setpgid puts the daemon and any
+	// descendants in a fresh process group; WaitDelay force-closes
+	// any inherited fds after the daemon exits. See the orphan-
+	// process hardening section of go-service-architecture.
 	cmd.Stdout = lf
 	cmd.Stderr = lf
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.WaitDelay = 10 * time.Second
 
 	if err := cmd.Start(); err != nil {
 		lf.Close()
@@ -131,26 +140,31 @@ func newHarness(t *testing.T) *Harness {
 		Client:   client.New(fmt.Sprintf("http://127.0.0.1:%d", port), harnessToken),
 		stubStop: stubStop,
 		signJWT:  signJWT,
+		logFile:  lf,
 	}
 
-	// Wait for the health endpoint to respond.
 	if err := h.waitHealthy(); err != nil {
-		h.Close()
-		// Print the daemon log to help diagnose startup failures.
-		lf.Close()
+		// Read what the daemon managed to write before death.
 		if b, readErr := os.ReadFile(logFile); readErr == nil {
 			t.Logf("daemon log:\n%s", b)
 		}
+		h.Close()
 		t.Fatalf("daemon did not become healthy: %v", err)
 	}
 
-	lf.Close()
 	t.Cleanup(h.Close)
 	return h
 }
 
-// Close stops the daemon process, shuts down the JWKS stub, and removes the
-// temp directory.
+// Close stops the daemon process (SIGTERM, then SIGKILL after 10s),
+// shuts down the JWKS stub, and removes the temp directory. Reads
+// the captured stdout/stderr after the daemon exits, dumps it on
+// test failure, and fails the test if it contains DATA RACE.
+//
+// Idempotent under sequential calls (the test calls Close explicitly
+// and t.Cleanup runs Close again on test exit; the second call is a
+// no-op). NOT safe to call concurrently — fields are zeroed without
+// locking. The t.Cleanup contract is sequential, so this is fine.
 func (h *Harness) Close() {
 	h.t.Helper()
 	if h.stubStop != nil {
@@ -158,11 +172,40 @@ func (h *Harness) Close() {
 		h.stubStop = nil
 	}
 	if h.cmd != nil && h.cmd.Process != nil {
-		_ = h.cmd.Process.Kill()
-		_ = h.cmd.Wait()
+		pgid := h.cmd.Process.Pid
+		_ = syscall.Kill(-pgid, syscall.SIGTERM)
+		done := make(chan error, 1)
+		go func() { done <- h.cmd.Wait() }()
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			_ = syscall.Kill(-pgid, syscall.SIGKILL)
+			<-done
+		}
+		// Mark process as reaped so a second Close is a no-op.
+		h.cmd.Process = nil
 	}
+
+	var logBytes []byte
+	if h.logFile != nil {
+		// Read whatever the daemon wrote, then close and unlink.
+		// (We can't unlink while open on Windows, but the e2e
+		// harness is Linux-only.)
+		logBytes, _ = os.ReadFile(h.logFile.Name())
+		h.logFile.Close()
+		h.logFile = nil
+	}
+
+	if h.t.Failed() && len(logBytes) > 0 {
+		h.t.Logf("daemon log:\n%s", logBytes)
+	}
+	if bytes.Contains(logBytes, []byte("DATA RACE")) {
+		h.t.Errorf("data race detected in daemon log:\n%s", logBytes)
+	}
+
 	if h.dir != "" {
 		os.RemoveAll(h.dir)
+		h.dir = ""
 	}
 }
 
