@@ -63,17 +63,16 @@ func NewServer(cfg ServerConfig) *http.Server {
 	if cfg.PassportURL != "" {
 		opts := auth.DefaultOptions(cfg.PassportURL)
 		jwtV, err := jwt.New(context.Background(), opts.JWKSURL, opts.JWKSRefreshInterval)
+		var jwtValidator auth.Validator
 		if err != nil {
-			log.Warn("jwt validator init failed, falling back to API key only", "err", err)
+			log.Warn("jwt validator init failed, Bearer requests will be rejected", "err", err)
+			jwtValidator = auth.AlwaysFail(fmt.Errorf("jwt validator unavailable: %w", err))
+		} else {
+			jwtValidator = jwtV
 		}
+		apiKeyV := apikey.New(opts.VerifyAPIKeyURL, opts.APIKeyCacheTTL)
 
-		var validators []auth.Validator
-		if jwtV != nil {
-			validators = append(validators, jwtV)
-		}
-		validators = append(validators, apikey.New(opts.VerifyAPIKeyURL, opts.APIKeyCacheTTL))
-
-		passportMW := auth.NewFromValidators(validators...)
+		passportMW := auth.NewSchemeDispatch(jwtValidator, apiKeyV)
 		handler = publicPathSkip(passportMW(mux), mux)
 	} else {
 		handler = mux

@@ -31,14 +31,15 @@ const (
 // random port. Call h.Close() (or register it with t.Cleanup) to stop the
 // daemon and remove temp files.
 type Harness struct {
-	t        *testing.T
-	dir      string         // root temp directory for this harness
-	cmd      *exec.Cmd      // the running hive process
-	port     int            // the port the daemon is listening on
-	Client   *client.Client // pre-configured client for this harness
-	stubStop func()         // stops the JWKS stub server
-	signJWT  func(id, username, name, userType string) string
-	logFile  *os.File // stdout+stderr capture; closed in Close after wait
+	t          *testing.T
+	dir        string         // root temp directory for this harness
+	cmd        *exec.Cmd      // the running hive process
+	port       int            // the port the daemon is listening on
+	Client     *client.Client // pre-configured client for this harness
+	stubStop   func()         // stops the JWKS stub server
+	signJWT    func(id, username, name, userType string) string
+	mintAPIKey func(id, username, name, userType string) string
+	logFile    *os.File // stdout+stderr capture; closed in Close after wait
 }
 
 // SignJWT creates a signed JWT with the given identity claims.
@@ -46,6 +47,14 @@ type Harness struct {
 // id should be the agent's UUID as stored in the Hive database.
 func (h *Harness) SignJWT(id, username, name, userType string) string {
 	return h.signJWT(id, username, name, userType)
+}
+
+// MintAPIKey registers a new API key with the JWKS stub bound to the given
+// identity claims, and returns the key string. Pass it into client.New —
+// it travels under the ApiKey-v1 scheme and the daemon scheme-dispatches
+// to the API-key validator.
+func (h *Harness) MintAPIKey(id, username, name, userType string) string {
+	return h.mintAPIKey(id, username, name, userType)
 }
 
 // newHarness creates a Harness, starts the daemon, and waits for it to be
@@ -70,12 +79,12 @@ func newHarness(t *testing.T) *Harness {
 	}
 
 	// Start the JWKS stub before the daemon so the initial JWKS fetch succeeds.
-	stubAddr, stubStop, signJWT := startJWKSStub()
+	stubAddr, stubStop, signJWT, mintAPIKey := startJWKSStub()
 
-	// Sign a per-harness token using a stable UUID so the daemon can look
-	// up the agent. Tests that need a specific agent identity should call
-	// h.SignJWT directly with their own UUID.
-	harnessToken := signJWT(
+	// Mint a per-harness API key bound to a stable identity. The Hive Go
+	// client sends every credential under ApiKey-v1, so the harness uses
+	// API keys (not JWTs) for its default authenticated client.
+	harnessToken := mintAPIKey(
 		"00000000-0000-0000-0000-000000000000",
 		"e2e-test",
 		"E2E Test User",
@@ -133,14 +142,15 @@ func newHarness(t *testing.T) *Harness {
 	}
 
 	h := &Harness{
-		t:        t,
-		dir:      dir,
-		cmd:      cmd,
-		port:     port,
-		Client:   client.New(fmt.Sprintf("http://127.0.0.1:%d", port), harnessToken),
-		stubStop: stubStop,
-		signJWT:  signJWT,
-		logFile:  lf,
+		t:          t,
+		dir:        dir,
+		cmd:        cmd,
+		port:       port,
+		Client:     client.New(fmt.Sprintf("http://127.0.0.1:%d", port), harnessToken),
+		stubStop:   stubStop,
+		signJWT:    signJWT,
+		mintAPIKey: mintAPIKey,
+		logFile:    lf,
 	}
 
 	if err := h.waitHealthy(); err != nil {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwa"
@@ -16,16 +17,23 @@ import (
 )
 
 // startJWKSStub starts a JWKS stub server that serves:
-//   - GET /v1/jwks — the public key in JWKS format
-//   - POST /v1/verify-api-key — rejects all API keys with 401 (the e2e suite
-//     only uses JWT auth via signJWT; a permissive stub defeats negative-auth
-//     tests like TestUnauthorizedRequest)
+//   - GET /v1/jwks — the public key in JWKS format (for any JWT-side
+//     negative-auth tests that still construct Bearer tokens directly)
+//   - POST /v1/verify-api-key — accepts only API keys registered via
+//     mintAPIKey; rejects everything else with 401 so negative-auth tests
+//     keep working.
 //
-// It returns:
+// Returns:
 //   - addr: the server address (host:port)
 //   - stop: function to stop the server
 //   - signJWT: function to create signed JWTs with the expected claims
-func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name, userType string) string) {
+//     (kept for negative-auth tests that construct raw Authorization headers)
+//   - mintAPIKey: function that registers a new API key with the stub and
+//     returns the key string. Pass this string into client.New — it travels
+//     under the ApiKey-v1 scheme, the daemon scheme-dispatches to the API-key
+//     validator, the validator calls /v1/verify-api-key here, and the
+//     identity assembled from the registered claims is propagated.
+func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name, userType string) string, mintAPIKey func(id, username, name, userType string) string) {
 	// Generate RSA key pair.
 	rawKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -61,14 +69,43 @@ func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name,
 		w.Write(jwksBytes) //nolint:errcheck
 	})
 
-	// Reject all API keys. The e2e harness only uses JWT auth (via signJWT),
-	// so any bearer token that falls through to API key validation is by
-	// definition not valid. Returning 401 here is what lets negative-auth
-	// tests (TestUnauthorizedRequest) work.
+	// Registered API keys → identity claims. Populated by mintAPIKey.
+	type apiKeyIdentity struct{ id, username, name, userType string }
+	registry := make(map[string]apiKeyIdentity)
+	var registryMu sync.Mutex
+
+	// /v1/verify-api-key honours registered keys, rejects everything else.
+	// Negative-auth tests (TestUnauthorizedRequest) rely on the rejection path.
+	// Request body: {"key": "<api-key-string>"} (matches apikey.Validator in
+	// service-auth v0.1.0 which marshals the field as "key", not "api_key").
+	// Response body mirrors the better-auth /api/auth/get-api-key shape that
+	// service-auth@v0.1.0 decodes: {"valid":true,"key":{"userId":"...","metadata":{...}}}
 	mux.HandleFunc("POST /v1/verify-api-key", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Key string `json:"key"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		registryMu.Lock()
+		ident, ok := registry[body.Key]
+		registryMu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{"valid": false, "error": "unknown api key"}) //nolint:errcheck
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]any{"valid": false, "error": "unknown api key"}) //nolint:errcheck
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"valid": true,
+			"key": map[string]any{
+				"userId": ident.id,
+				"metadata": map[string]any{
+					"username":     ident.username,
+					"name":         ident.name,
+					"display_name": ident.name,
+					"type":         ident.userType,
+				},
+			},
+		}) //nolint:errcheck
 	})
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -111,5 +148,13 @@ func startJWKSStub() (addr string, stop func(), signJWT func(id, username, name,
 		return string(signedBytes)
 	}
 
-	return ln.Addr().String(), stopFn, signFn
+	mintFn := func(id, username, name, userType string) string {
+		key := fmt.Sprintf("wf-svc_e2e-%s-%d", id, time.Now().UnixNano())
+		registryMu.Lock()
+		registry[key] = apiKeyIdentity{id: id, username: username, name: name, userType: userType}
+		registryMu.Unlock()
+		return key
+	}
+
+	return ln.Addr().String(), stopFn, signFn, mintFn
 }

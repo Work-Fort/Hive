@@ -68,7 +68,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
 
-	exportToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
+	exportToken := h.MintAPIKey("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
@@ -118,7 +118,7 @@ func TestExportImportDryRun(t *testing.T) {
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
 
-	exportToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
+	exportToken := h.MintAPIKey("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",
 		"--port", portStr,
@@ -165,7 +165,7 @@ func TestImportConflictAndUpsert(t *testing.T) {
 
 	exportDir := filepath.Join(t.TempDir(), "export")
 	portStr := fmt.Sprintf("%d", h.port)
-	conflictToken := h.SignJWT("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
+	conflictToken := h.MintAPIKey("00000000-0000-0000-0000-000000000000", "e2e-test", "E2E Test User", "user")
 
 	exportCmd := exec.Command(hiveBin, "export", exportDir,
 		"--host", "127.0.0.1",

@@ -3,7 +3,7 @@ module github.com/Work-Fort/Hive
 go 1.26
 
 require (
-	github.com/Work-Fort/Passport/go/service-auth v0.0.2
+	github.com/Work-Fort/Passport/go/service-auth v0.1.0
 	github.com/charmbracelet/log v1.0.0
 	github.com/danielgtaylor/huma/v2 v2.37.2
 	github.com/jackc/pgx/v5 v5.8.0
