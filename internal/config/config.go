@@ -81,7 +81,7 @@ func InitViper() {
 	viper.SetDefault("log-level", "debug")
 	viper.SetDefault("db", "")
 	viper.SetDefault("passport-url", "http://passport.nexus:3000")
-	viper.SetDefault("passport-token", "")
+	viper.SetDefault("passport-api-key", "")
 	viper.SetDefault("max-role-depth", DefaultMaxRoleDepth)
 
 	viper.SetConfigName(ConfigFileName)
