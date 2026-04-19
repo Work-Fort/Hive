@@ -32,7 +32,7 @@ func (s *SweeperService) SweepOnce(ctx context.Context) (int, error) {
 			"agent_id", a.ID,
 			"agent_name", a.Name,
 			"workflow_id", a.CurrentWorkflowID,
-			"role", a.CurrentRole,
+			"role", a.AssignedRole,
 			"project", a.CurrentProject,
 			"lease_expired_at", a.LeaseExpiresAt.Format(time.RFC3339),
 		)

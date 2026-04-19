@@ -116,8 +116,8 @@ func TestAgent_CurrentAssignment_Roundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get agent: %v", err)
 	}
-	if got.CurrentRole != "" {
-		t.Errorf("CurrentRole = %q, want empty", got.CurrentRole)
+	if got.AssignedRole != "" {
+		t.Errorf("AssignedRole = %q, want empty", got.AssignedRole)
 	}
 	if got.CurrentProject != "" {
 		t.Errorf("CurrentProject = %q, want empty", got.CurrentProject)
@@ -130,7 +130,7 @@ func TestAgent_CurrentAssignment_Roundtrip(t *testing.T) {
 	}
 
 	lease := time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
-	agent.CurrentRole = "developer"
+	agent.AssignedRole = "developer"
 	agent.CurrentProject = "hive"
 	agent.CurrentWorkflowID = "wf-abc"
 	agent.LeaseExpiresAt = lease
@@ -142,8 +142,8 @@ func TestAgent_CurrentAssignment_Roundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get agent after update: %v", err)
 	}
-	if got2.CurrentRole != "developer" {
-		t.Errorf("CurrentRole = %q, want %q", got2.CurrentRole, "developer")
+	if got2.AssignedRole != "developer" {
+		t.Errorf("AssignedRole = %q, want %q", got2.AssignedRole, "developer")
 	}
 	if got2.CurrentProject != "hive" {
 		t.Errorf("CurrentProject = %q, want %q", got2.CurrentProject, "hive")
@@ -164,7 +164,7 @@ func TestAgent_CurrentAssignment_AllOrNothingRejected(t *testing.T) {
 	// Insert with partial assignment (role set, others empty) should fail.
 	partial := &domain.Agent{
 		ID: "a_001", Name: "alice", TeamID: "t_001",
-		CurrentRole: "developer", // others deliberately left zero
+		AssignedRole: "developer", // others deliberately left zero
 	}
 	if err := store.CreateAgent(ctx, partial); err == nil {
 		t.Fatalf("CreateAgent with partial current_* unexpectedly succeeded")
@@ -216,8 +216,8 @@ func TestClaimAgent_PicksFreeAgent(t *testing.T) {
 	if claimed.CurrentWorkflowID != "wf-abc" {
 		t.Errorf("CurrentWorkflowID = %q, want %q", claimed.CurrentWorkflowID, "wf-abc")
 	}
-	if claimed.CurrentRole != "developer" {
-		t.Errorf("CurrentRole = %q, want %q", claimed.CurrentRole, "developer")
+	if claimed.AssignedRole != "developer" {
+		t.Errorf("AssignedRole = %q, want %q", claimed.AssignedRole, "developer")
 	}
 	if claimed.CurrentProject != "hive" {
 		t.Errorf("CurrentProject = %q, want %q", claimed.CurrentProject, "hive")
@@ -244,11 +244,11 @@ func TestClaimAgent_PoolExhausted(t *testing.T) {
 	expires := time.Now().UTC().Add(time.Hour)
 	store.CreateAgent(ctx, &domain.Agent{
 		ID: "a_001", Name: "agent-one", TeamID: "t_001",
-		CurrentRole: "dev", CurrentProject: "p", CurrentWorkflowID: "wf-1", LeaseExpiresAt: expires,
+		AssignedRole: "dev", CurrentProject: "p", CurrentWorkflowID: "wf-1", LeaseExpiresAt: expires,
 	})
 	store.CreateAgent(ctx, &domain.Agent{
 		ID: "a_002", Name: "agent-two", TeamID: "t_001",
-		CurrentRole: "dev", CurrentProject: "p", CurrentWorkflowID: "wf-2", LeaseExpiresAt: expires,
+		AssignedRole: "dev", CurrentProject: "p", CurrentWorkflowID: "wf-2", LeaseExpiresAt: expires,
 	})
 
 	_, err := store.ClaimAgent(ctx, "developer", "hive", "wf-new", time.Now().UTC().Add(time.Hour))
@@ -317,13 +317,13 @@ func TestSweepExpiredLeases(t *testing.T) {
 
 	// a_001 has an expired lease; a_002 has a fresh one.
 	a1 := &domain.Agent{ID: "a_001", Name: "alice", TeamID: "t_001",
-		CurrentRole: "developer", CurrentProject: "flow",
+		AssignedRole: "developer", CurrentProject: "flow",
 		CurrentWorkflowID: "wf-1", LeaseExpiresAt: past}
 	if err := store.UpdateAgent(ctx, a1); err != nil {
 		t.Fatalf("update a_001: %v", err)
 	}
 	a2 := &domain.Agent{ID: "a_002", Name: "bob", TeamID: "t_001",
-		CurrentRole: "reviewer", CurrentProject: "flow",
+		AssignedRole: "reviewer", CurrentProject: "flow",
 		CurrentWorkflowID: "wf-2", LeaseExpiresAt: future}
 	if err := store.UpdateAgent(ctx, a2); err != nil {
 		t.Fatalf("update a_002: %v", err)
@@ -418,7 +418,7 @@ func TestListAgentsByAssignment_FreeAndClaimed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment(role=developer): %v", err)
 	}
-	if len(byRole) != 1 || byRole[0].CurrentRole != "developer" {
+	if len(byRole) != 1 || byRole[0].AssignedRole != "developer" {
 		t.Errorf("role=developer: expected 1 developer, got %+v", byRole)
 	}
 }

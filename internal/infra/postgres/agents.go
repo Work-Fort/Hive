@@ -12,7 +12,7 @@ import (
 	"github.com/Work-Fort/Hive/internal/domain"
 )
 
-const agentCols = "id, name, team_id, model, runtime, current_role, current_project, current_workflow_id, lease_expires_at, created_at, updated_at"
+const agentCols = "id, name, team_id, model, runtime, assigned_role, current_project, current_workflow_id, lease_expires_at, created_at, updated_at"
 
 func scanAgent(row interface {
 	Scan(dest ...any) error
@@ -28,7 +28,7 @@ func scanAgent(row interface {
 		return nil, err
 	}
 	if role.Valid {
-		a.CurrentRole = role.String
+		a.AssignedRole = role.String
 	}
 	if project.Valid {
 		a.CurrentProject = project.String
@@ -45,8 +45,8 @@ func scanAgent(row interface {
 func toNullable(a *domain.Agent) (any, any, any, any) {
 	var role, project, workflowID any
 	var leaseExpires any
-	if a.CurrentRole != "" {
-		role = a.CurrentRole
+	if a.AssignedRole != "" {
+		role = a.AssignedRole
 	}
 	if a.CurrentProject != "" {
 		project = a.CurrentProject
@@ -123,7 +123,7 @@ func (s *Store) ListAgents(ctx context.Context, teamID string) ([]*domain.Agent,
 func (s *Store) UpdateAgent(ctx context.Context, a *domain.Agent) error {
 	role, project, workflowID, leaseExpires := toNullable(a)
 	res, err := s.db.ExecContext(ctx,
-		"UPDATE agents SET name = $1, team_id = $2, model = $3, runtime = $4, current_role = $5, current_project = $6, current_workflow_id = $7, lease_expires_at = $8, updated_at = NOW() WHERE id = $9",
+		"UPDATE agents SET name = $1, team_id = $2, model = $3, runtime = $4, assigned_role = $5, current_project = $6, current_workflow_id = $7, lease_expires_at = $8, updated_at = NOW() WHERE id = $9",
 		a.Name, a.TeamID, a.Model, a.Runtime, role, project, workflowID, leaseExpires, a.ID)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -225,7 +225,7 @@ func (s *Store) LookupAgentByName(ctx context.Context, name string) (*domain.Age
 
 func (s *Store) ClaimAgent(ctx context.Context, role, project, workflowID string, leaseExpiresAt time.Time) (*domain.Agent, error) {
 	row := s.db.QueryRowContext(ctx,
-		"UPDATE agents SET current_role = $1, current_project = $2, current_workflow_id = $3, lease_expires_at = $4, updated_at = NOW() WHERE id = (SELECT id FROM agents WHERE current_workflow_id IS NULL ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING "+agentCols,
+		"UPDATE agents SET assigned_role = $1, current_project = $2, current_workflow_id = $3, lease_expires_at = $4, updated_at = NOW() WHERE id = (SELECT id FROM agents WHERE current_workflow_id IS NULL ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING "+agentCols,
 		role, project, workflowID, leaseExpiresAt.UTC())
 	agent, err := scanAgent(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -239,7 +239,7 @@ func (s *Store) ClaimAgent(ctx context.Context, role, project, workflowID string
 
 func (s *Store) ReleaseAgent(ctx context.Context, agentID, workflowID string) error {
 	res, err := s.db.ExecContext(ctx,
-		"UPDATE agents SET current_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE id = $1 AND current_workflow_id = $2",
+		"UPDATE agents SET assigned_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE id = $1 AND current_workflow_id = $2",
 		agentID, workflowID)
 	if err != nil {
 		return fmt.Errorf("release agent: %w", err)
@@ -300,7 +300,7 @@ func (s *Store) SweepExpiredLeases(ctx context.Context, now time.Time) ([]*domai
 
 	if len(released) > 0 {
 		_, err = tx.ExecContext(ctx,
-			"UPDATE agents SET current_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE lease_expires_at IS NOT NULL AND lease_expires_at < $1",
+			"UPDATE agents SET assigned_role = NULL, current_project = NULL, current_workflow_id = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE lease_expires_at IS NOT NULL AND lease_expires_at < $1",
 			now.UTC())
 		if err != nil {
 			return nil, fmt.Errorf("clear expired leases: %w", err)
@@ -335,7 +335,7 @@ func (s *Store) ListAgentsByAssignment(ctx context.Context, f domain.AgentAssign
 		n++
 	}
 	if f.Role != "" {
-		where = append(where, fmt.Sprintf("current_role = $%d", n))
+		where = append(where, fmt.Sprintf("assigned_role = $%d", n))
 		args = append(args, f.Role)
 		n++
 	}

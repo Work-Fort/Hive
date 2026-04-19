@@ -27,7 +27,7 @@ type Agent struct {
 	TeamID            string    `json:"TeamID"`
 	Model             string    `json:"Model,omitempty"`
 	Runtime           string    `json:"Runtime,omitempty"`
-	CurrentRole       string    `json:"CurrentRole,omitempty"`
+	AssignedRole      string    `json:"AssignedRole,omitempty"`
 	CurrentProject    string    `json:"CurrentProject,omitempty"`
 	CurrentWorkflowID string    `json:"CurrentWorkflowID,omitempty"`
 	LeaseExpiresAt    time.Time `json:"LeaseExpiresAt,omitempty"`

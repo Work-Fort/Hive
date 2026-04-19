@@ -45,20 +45,20 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 
 	if agent.CurrentWorkflowID != "" {
 		currentAssignment = &domain.CurrentAssignment{
-			Role:           agent.CurrentRole,
+			Role:           agent.AssignedRole,
 			Project:        agent.CurrentProject,
 			WorkflowID:     agent.CurrentWorkflowID,
 			LeaseExpiresAt: agent.LeaseExpiresAt,
 		}
 
-		role, err := ps.store.LookupRoleByName(ctx, agent.CurrentRole)
+		role, err := ps.store.LookupRoleByName(ctx, agent.AssignedRole)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
-				log.Warn("provisioning: claimed agent has unknown current_role",
-					"agent_id", agent.ID, "current_role", agent.CurrentRole)
+				log.Warn("provisioning: claimed agent has unknown assigned_role",
+					"agent_id", agent.ID, "assigned_role", agent.AssignedRole)
 				// groups stays empty; fall through to memory synthesis.
 			} else {
-				return nil, fmt.Errorf("lookup current role %q: %w", agent.CurrentRole, err)
+				return nil, fmt.Errorf("lookup current role %q: %w", agent.AssignedRole, err)
 			}
 		} else {
 			chain, err := ps.store.GetRoleChain(ctx, role.ID, ps.maxRoleDepth)
@@ -87,7 +87,7 @@ func (ps *ProvisioningService) Resolve(ctx context.Context, agentID string) (*do
 			ID:        "synthetic:current-project",
 			Kind:      domain.DocumentKindMemory,
 			Title:     "Current Project",
-			Content:   fmt.Sprintf("You are currently acting as **%s** for project **%s**.\n", agent.CurrentRole, agent.CurrentProject),
+			Content:   fmt.Sprintf("You are currently acting as **%s** for project **%s**.\n", agent.AssignedRole, agent.CurrentProject),
 			AgentID:   agent.ID,
 			CreatedAt: now, UpdatedAt: now,
 		})

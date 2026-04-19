@@ -68,7 +68,7 @@ func agentToResponse(a *domain.Agent) agentResponse {
 	return agentResponse{
 		ID: a.ID, Name: a.Name, TeamID: a.TeamID,
 		Model: a.Model, Runtime: a.Runtime,
-		CurrentRole: a.CurrentRole, CurrentProject: a.CurrentProject,
+		AssignedRole: a.AssignedRole, CurrentProject: a.CurrentProject,
 		CurrentWorkflowID: a.CurrentWorkflowID, LeaseExpiresAt: a.LeaseExpiresAt,
 		CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 	}
@@ -523,7 +523,7 @@ func registerAgentRoutes(api huma.API, store domain.Store) {
 		return &AgentDetailOutput{Body: agentDetailResponse{
 			ID: agent.ID, Name: agent.Name, TeamID: agent.TeamID,
 			Model: agent.Model, Runtime: agent.Runtime,
-			CurrentRole: agent.CurrentRole, CurrentProject: agent.CurrentProject,
+			AssignedRole: agent.AssignedRole, CurrentProject: agent.CurrentProject,
 			CurrentWorkflowID: agent.CurrentWorkflowID, LeaseExpiresAt: agent.LeaseExpiresAt,
 			CreatedAt: agent.CreatedAt, UpdatedAt: agent.UpdatedAt,
 			Roles: agentRolesToResponse(roles),

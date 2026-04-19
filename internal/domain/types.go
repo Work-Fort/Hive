@@ -60,7 +60,7 @@ type Agent struct {
 	// Current assignment — all-or-nothing. When the agent is free, all four
 	// are zero values. When claimed by a workflow, all four are set.
 	// See docs/2026-04-18-agent-assignment-schema.md for the invariant.
-	CurrentRole       string
+	AssignedRole      string
 	CurrentProject    string
 	CurrentWorkflowID string
 	LeaseExpiresAt    time.Time

@@ -45,7 +45,7 @@ func TestSweeperReleasesOneExpiredAgent(t *testing.T) {
 	past := time.Now().UTC().Add(-time.Minute)
 	store.UpdateAgent(ctx, &domain.Agent{
 		ID: "a", Name: "a", TeamID: "t",
-		CurrentRole: "r", CurrentProject: "p",
+		AssignedRole: "r", CurrentProject: "p",
 		CurrentWorkflowID: "wf", LeaseExpiresAt: past,
 	})
 

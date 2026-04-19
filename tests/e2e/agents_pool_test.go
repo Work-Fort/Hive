@@ -165,7 +165,7 @@ func TestListAssignedFilters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAgentsByAssignment(role=developer): %v", err)
 	}
-	if len(byRole) != 1 || byRole[0].CurrentRole != "developer" {
+	if len(byRole) != 1 || byRole[0].AssignedRole != "developer" {
 		t.Errorf("role=developer: expected 1 developer, got %+v", byRole)
 	}
 }

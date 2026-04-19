@@ -266,7 +266,7 @@ type agentResponse struct {
 	TeamID            string    `json:"TeamID" doc:"Team ID"`
 	Model             string    `json:"Model,omitempty" doc:"LLM model identifier"`
 	Runtime           string    `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
-	CurrentRole       string    `json:"CurrentRole,omitempty" doc:"Role the agent is filling"`
+	AssignedRole      string    `json:"AssignedRole,omitempty" doc:"Role the agent is filling"`
 	CurrentProject    string    `json:"CurrentProject,omitempty" doc:"Project the agent is working on"`
 	CurrentWorkflowID string    `json:"CurrentWorkflowID,omitempty" doc:"Flow workflow holding the lease"`
 	LeaseExpiresAt    time.Time `json:"LeaseExpiresAt,omitempty" doc:"Lease expiry timestamp"`
@@ -280,7 +280,7 @@ type agentDetailResponse struct {
 	TeamID            string              `json:"TeamID" doc:"Team ID"`
 	Model             string              `json:"Model,omitempty" doc:"LLM model identifier"`
 	Runtime           string              `json:"Runtime,omitempty" doc:"Adjutant runtime variant"`
-	CurrentRole       string              `json:"CurrentRole,omitempty" doc:"Role the agent is filling"`
+	AssignedRole      string              `json:"AssignedRole,omitempty" doc:"Role the agent is filling"`
 	CurrentProject    string              `json:"CurrentProject,omitempty" doc:"Project the agent is working on"`
 	CurrentWorkflowID string              `json:"CurrentWorkflowID,omitempty" doc:"Flow workflow holding the lease"`
 	LeaseExpiresAt    time.Time           `json:"LeaseExpiresAt,omitempty" doc:"Lease expiry timestamp"`
