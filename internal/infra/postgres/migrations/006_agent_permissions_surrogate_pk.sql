@@ -34,8 +34,10 @@ END $$;
 
 -- +goose Down
 -- No-op: reversing this migration would require knowing whether the
--- table was modified by this migration or was already correct. Since
--- PG is unreleased, simply leave the schema as-is.
+-- table was modified by this migration or was already correct. Goose
+-- tracks applied versions, so existing instances that ran old 001
+-- will have had their schema repaired by this migration's Up block;
+-- there is no safe way to un-repair without data loss.
 -- +goose StatementBegin
 SELECT 1;
 -- +goose StatementEnd
